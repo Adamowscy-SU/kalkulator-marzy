@@ -15,7 +15,7 @@
  */
 var ODBIORCA = 'wpisz@adres.pl';
 var TOKEN = 'wybrane-auto-2026';
-var ARKUSZ_ID = '';
+var ARKUSZ_ID = '1IRIGOlww5pN75rK9WLPL7IAUX7kYfeu2ETFxNtpdrF4'; // Rejestr transakcji – SU Adamowscy
 
 function doPost(e) {
   try {
@@ -36,15 +36,22 @@ function doPost(e) {
       name: 'Kalkulator Marży SU - Adamowscy'
     });
 
-    if (ARKUSZ_ID) {
-      SpreadsheetApp.openById(ARKUSZ_ID).getSheets()[0].appendRow([
-        new Date(), vin, d.car, d.seller, d.basis, d.buyDate, d.saleDate, d.saleDoc, d.days, d.bank, d.margin, d.pct
-      ]);
-    }
+    if (ARKUSZ_ID) zapiszWiersz_(d, vin);
     return out_('ok');
   } catch (err) {
     return out_('błąd: ' + err);
   }
+}
+
+function zapiszWiersz_(d, vin) {
+  var n = d.num || {};
+  var dt = function (s) { return s ? Utilities.parseDate(s, 'Europe/Warsaw', 'yyyy-MM-dd') : ''; };
+  var sh = SpreadsheetApp.openById(ARKUSZ_ID).getSheetByName('Transakcje');
+  sh.appendRow([
+    new Date(), vin, d.car || '', d.seller || '', d.basis || '', dt(n.buyDate), dt(n.saleDate),
+    d.days == null ? '' : d.days, d.saleDoc ? "'" + d.saleDoc : '',
+    n.saleGross, n.saleNet, n.buy, n.pcc, n.det, n.rep, d.bank || '', n.comm, n.carMargin, n.margin, n.pct
+  ]);
 }
 
 function raport_(d, vin) {
