@@ -286,26 +286,16 @@ input[type=date]{width:100%;padding:10px 12px;border:1px solid #cfd5dd;border-ra
   <h3 class="sec">Rozliczenie</h3>
   <table class="br" id="breakdown"></table>
 
-  <h3 class="sec">Do negocjacji</h3>
-  <div class="tools">
-    <div class="tool">
-      <h4>Ile maksymalnie zapłacić za auto?</h4>
-      <label class="f"><span>Docelowa marża I netto</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="target"><i>zł</i></div></label>
-      <div class="ans money" id="maxBuy"></div>
-      <p id="maxBuyS"></p>
+  <h3 class="sec">Wyślij raport</h3>
+  <div class="tool">
+    <label class="f"><span>Handlowiec (kto liczy) <span class="req">*</span></span>
+      <input type="text" data-k="seller" placeholder="Imię i nazwisko"><div class="errmsg" data-err="seller">Podaj imię i nazwisko handlowca.</div></label>
+    <p style="margin-top:10px">Raport PDF trafi na firmowy adres. W temacie maila jest numer VIN.</p>
+    <div class="nav" style="justify-content:flex-start;flex-wrap:wrap;margin-top:12px">
+      <button class="btn primary" type="button" id="sendBtn">Wyślij raport PDF</button>
+      <button class="btn" type="button" id="copyBtn">Kopiuj podsumowanie</button>
     </div>
-    <div class="tool">
-      <h4>Za ile sprzedać?</h4>
-      <p style="margin:0 0 4px">Cena brutto dla docelowej marży:</p>
-      <div class="ans money" id="minSale"></div>
-      <p id="minSaleS"></p>
-      <p>Wyjście na zero: <b class="money" id="breakEven"></b></p>
-    </div>
-  </div>
-
-  <div class="nav" style="justify-content:flex-start;flex-wrap:wrap">
-    <button class="btn primary" type="button" id="copyBtn">Kopiuj podsumowanie</button>
+    <div class="info" id="sendStatus" style="display:none"></div>
   </div>
   <p class="foot">Marża I netto = sprzedaż netto − zakup netto − PCC (przy umowie) − detailing netto − usprawnienia netto (w tym Renew) + prowizja z finansowania. Nie obejmuje ogłoszeń, kosztów postoju ani podatku dochodowego. VAT-marża (art. 120 ustawy o VAT): VAT = (cena sprzedaży − cena zakupu) × 23/123.</p>
 </div>
@@ -384,9 +374,11 @@ if(typeof module!=='undefined') module.exports = { calc:calc, n:n, validVin:vali
 
 <script>
 /* ===== Interfejs ===== */
+/* KONFIGURACJA WYSYŁKI: adres URL aplikacji Google Apps Script (apps-script/wysylka.gs) i ten sam TOKEN co w skrypcie */
+var CONFIG = { SEND_URL: '', TOKEN: 'wybrane-auto-2026' };
 var PRESETS = { repairs: [['Serwis olejowy + filtry',true],['Opony',true],['Klocki / tarcze',true],['Lakierowanie',true],['PDR – wgniotki',true],['Szyba',true],['Klimatyzacja',true],['Diagnostyka',true]] };
 var DEFAULT = { mode:'marza', vin:'', carName:'', buyDate:'', saleDate:'', price:'', detOn:true, detAmount:'', detVat:'23',
-  lines:[], renewOn:true, finOn:false, bank:'RCI Bank (Renault Finance)', bankOther:'', comm:'', sale:'', target:'3000', step:0 };
+  lines:[], renewOn:true, finOn:false, bank:'RCI Bank (Renault Finance)', bankOther:'', comm:'', sale:'', seller:'', step:0 };
 var KEY='kalkMarza.v2', state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ state = null; }
 if(!state) state = JSON.parse(JSON.stringify(DEFAULT)); else for(var k in DEFAULT) if(!(k in state)) state[k]=DEFAULT[k];
@@ -566,15 +558,6 @@ function renderResult(R){
   rows.push('<tr class="sum"><td>MARŻA I NETTO</td><td class="'+(R.margin>=0?'plus':'minus')+'">'+zl2(R.margin)+'</td></tr>');
   $('#breakdown').innerHTML = rows.join('');
 
-  var P = n(state.target), mb = R.maxBuyFor(P);
-  if(!R.S){ $('#maxBuy').textContent='–'; $('#maxBuyS').textContent='Najpierw wpisz cenę sprzedaży.'; }
-  else if(mb<=0){ $('#maxBuy').textContent='Nie da się'; $('#maxBuyS').textContent='Przy tej cenie sprzedaży nie osiągniesz '+zl(P)+' marży.'; }
-  else { $('#maxBuy').textContent = zl(mb) + (marza?'':' brutto');
-    $('#maxBuyS').textContent = R.buyGross ? (mb>=R.buyGross ? 'Zapłacono '+zl(R.buyGross)+', czyli '+zl(mb-R.buyGross)+' zapasu.' : 'Zapłacono '+zl(R.buyGross)+', czyli o '+zl(R.buyGross-mb)+' za dużo.') : ''; }
-  var sf = R.saleFor(P);
-  $('#minSale').textContent = zl(Math.max(sf,0));
-  $('#minSaleS').textContent = R.S ? (sf>R.S ? 'Brakuje '+zl(sf-R.S)+' do obecnej ceny.' : 'Obecna cena daje '+zl(R.S-sf)+' ponad cel.') : '';
-  $('#breakEven').textContent = zl(Math.max(R.saleFor(0),0));
 }
 
 function summaryText(){
@@ -582,6 +565,7 @@ function summaryText(){
   L.push('MARŻA I NETTO' + (state.carName ? ' – '+state.carName : ''));
   L.push('VIN: '+(state.vin||'–'));
   L.push('Zakup: '+dpl(state.buyDate)+' · Sprzedaż: '+dpl(state.saleDate)+(R.days!=null?' · '+R.days+' dni w stocku':''));
+  if(state.seller) L.push('Handlowiec: '+state.seller);
   L.push('Zakup na: '+(R.umowa?'umowę kupna-sprzedaży (sprzedaż VAT-marża)':marza?'fakturę VAT-marża':'fakturę VAT 23%'));
   L.push('');
   L.push('Sprzedaż brutto: '+zl2(R.S)+' | netto: '+zl2(R.revNet));
@@ -595,12 +579,48 @@ function summaryText(){
   L.push('MARŻA I NETTO: '+zl2(R.margin)+' ('+pc(R.pct)+')');
   return L.join('\n');
 }
+function reportPayload(){
+  var R = calc(state), marza=!R.vatMode, rows=[];
+  function r(l,v,t){ rows.push([l, zl2(v), t||'']); }
+  r('Cena sprzedaży brutto', R.S);
+  if(marza){ r('Marża brutto do VAT (sprzedaż − zakup)', Math.max(R.vatBase,0)); r('VAT-marża (× 23/123)', -R.vatOut); }
+  else r('VAT 23%', -R.vatOut);
+  r('Sprzedaż netto', R.revNet, 'b');
+  r(R.umowa ? 'Zakup (umowa kupna-sprzedaży)' : marza ? 'Zakup (kwota nabycia)' : 'Zakup netto', -R.N);
+  if(R.umowa) r('Podatek PCC 2%', -R.pcc);
+  if(state.detOn) r('Detailing netto', -R.cDet);
+  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) r((l.name||'Usprawnienie')+(l.vat?' (FV 23%)':''), -lineCost(l)); });
+  if(R.renew) r('Certyfikat Renew', -R.renew);
+  r('Marża na aucie', R.carMargin, 'b');
+  if(state.finOn) r('Prowizja z finansowania – '+bankName(), R.C);
+  r('MARŻA I NETTO', R.margin, 'total');
+  return { token: CONFIG.TOKEN, vin: state.vin, car: state.carName, seller: state.seller,
+    basis: R.umowa ? 'Umowa kupna-sprzedaży (sprzedaż VAT-marża)' : marza ? 'Faktura VAT-marża' : 'Faktura VAT 23%',
+    buyDate: dpl(state.buyDate), saleDate: dpl(state.saleDate), days: R.days, bank: state.finOn ? bankName() : '',
+    margin: zl2(R.margin), pct: pc(R.pct), rows: rows, text: summaryText() };
+}
+function setStatus(html, bad){ var e=$('#sendStatus'); e.style.display=''; e.className='info'+(bad?' warn':''); e.innerHTML=html; }
+function sendReport(){
+  var e = errors(); if(!state.seller.trim()) e.seller=1;
+  var all=['vin','buyDate','saleDate','price','sale','seller'];
+  all.forEach(function(f){ var m=$('[data-err="'+f+'"]'); if(m && f==='seller') m.classList.toggle('show',!!e.seller); });
+  if(e.seller) $('[data-k="seller"]').classList.add('err');
+  if(Object.keys(e).length){ setStatus('Uzupełnij brakujące dane przed wysłaniem.', true); return; }
+  if(!CONFIG.SEND_URL){ setStatus('Wysyłka nie jest jeszcze skonfigurowana. Brakuje adresu skryptu wysyłki (CONFIG.SEND_URL).', true); return; }
+  var b=$('#sendBtn'); b.disabled=true; b.textContent='Wysyłam…';
+  fetch(CONFIG.SEND_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(reportPayload()) })
+    .then(function(){ setStatus('Wysłano raport dla VIN <b>'+esc(state.vin)+'</b>.'); toast('Raport wysłany'); })
+    .catch(function(){ setStatus('Nie udało się wysłać. Sprawdź internet albo otwórz kalkulator z firmowego linku (w podglądzie Claude wysyłka jest zablokowana).', true); })
+    .then(function(){ b.disabled=false; b.textContent='Wyślij raport PDF'; });
+}
 function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show');},1800); }
 
 $$('.choice').forEach(function(c){ c.addEventListener('click',function(){ state.mode=c.dataset.mode; refresh(); state.step=1; showStep(); }); });
 $('#nextBtn').addEventListener('click',function(){ var t=Math.min(state.step+1,steps.length-1); if(!canGo(t)) return; state.step=t; showStep(); });
 $('#prevBtn').addEventListener('click',function(){ state.step=Math.max(state.step-1,0); showStep(); });
 $('#progress').addEventListener('click',function(e){ var b=e.target.closest('[data-go]'); if(!b) return; var t=+b.dataset.go; if(t>state.step && !canGo(t)) return; state.step=t; showStep(); });
+$('#sendBtn').addEventListener('click',sendReport);
+$('[data-k="seller"]').addEventListener('input',function(e){ if(e.target.value.trim()){ e.target.classList.remove('err'); $('[data-err="seller"]').classList.remove('show'); } });
 $('#copyBtn').addEventListener('click',function(){
   var t = summaryText();
   try { navigator.clipboard.writeText(t).then(function(){toast('Skopiowano podsumowanie');},function(){fallbackCopy(t);}); } catch(e){ fallbackCopy(t); }
@@ -608,7 +628,7 @@ $('#copyBtn').addEventListener('click',function(){
 function fallbackCopy(t){ var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Skopiowano podsumowanie'); }catch(e){ toast('Nie udało się skopiować'); } ta.remove(); }
 $('#resetBtn').addEventListener('click',function(){
   var b=$('#resetBtn');
-  if(b.dataset.armed){ state = JSON.parse(JSON.stringify(DEFAULT)); init(); $$('.errmsg').forEach(function(x){x.classList.remove('show');}); $$('.err').forEach(function(x){x.classList.remove('err');}); toast('Nowa kalkulacja'); delete b.dataset.armed; b.textContent='Nowa kalkulacja'; return; }
+  if(b.dataset.armed){ var keepSeller=state.seller; state = JSON.parse(JSON.stringify(DEFAULT)); state.seller=keepSeller; $('#sendStatus').style.display='none'; init(); $$('.errmsg').forEach(function(x){x.classList.remove('show');}); $$('.err').forEach(function(x){x.classList.remove('err');}); toast('Nowa kalkulacja'); delete b.dataset.armed; b.textContent='Nowa kalkulacja'; return; }
   b.dataset.armed='1'; b.textContent='Na pewno? Kliknij ponownie';
   setTimeout(function(){ delete b.dataset.armed; b.textContent='Nowa kalkulacja'; },3000);
 });
