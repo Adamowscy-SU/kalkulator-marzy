@@ -609,7 +609,9 @@ function reportPayload(){
   return { token: CONFIG.TOKEN, vin: state.vin, car: state.carName, seller: state.seller,
     basis: R.umowa ? 'Umowa kupna-sprzedaży (sprzedaż VAT-marża)' : marza ? 'Faktura VAT-marża' : 'Faktura VAT 23%',
     buyDate: dpl(state.buyDate), saleDate: dpl(state.saleDate), saleDoc: state.saleDoc, days: R.days, bank: state.finOn ? bankName() : '',
-    margin: zl2(R.margin), pct: pc(R.pct), rows: rows, text: summaryText() };
+    margin: zl2(R.margin), pct: pc(R.pct), rows: rows, text: summaryText(),
+    num: { buyDate: state.buyDate, saleDate: state.saleDate, saleGross: R.S, saleNet: R.revNet, buy: R.N, pcc: R.pcc,
+      det: R.cDet, rep: R.cRep + R.renew, comm: R.C, carMargin: R.carMargin, margin: R.margin, pct: R.pct } };
 }
 function setStatus(html, bad){ var e=$('#sendStatus'); e.style.display=''; e.className='info'+(bad?' warn':''); e.innerHTML=html; }
 function sendReport(){
