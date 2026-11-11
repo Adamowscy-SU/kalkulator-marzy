@@ -28,4 +28,4 @@ Wysyłkę obsługuje darmowy skrypt Google Apps Script (`apps-script/wysylka.gs`
 ## Udostępnienie pracownikom
 
 Settings → Pages → Branch `main`, folder `/ (root)`. Kalkulator będzie dostępny pod
-`https://mikulskiwojtek4-debug.github.io/Kalkulator/` i działa na telefonie bez logowania.
+`https://adamowscy-su.github.io/kalkulator-marzy/` i działa na telefonie bez logowania.

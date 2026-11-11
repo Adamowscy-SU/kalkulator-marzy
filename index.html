@@ -73,8 +73,9 @@ input[type=text]:focus,select:focus{outline:2px solid #9cc7b6;border-color:var(-
 .info b{color:inherit}
 
 .lines{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-.lrow{display:grid;grid-template-columns:minmax(0,1fr) 140px auto 34px;gap:8px;align-items:center}
-@media (max-width:620px){.lrow{grid-template-columns:minmax(0,1fr) 110px 34px;row-gap:4px;padding-bottom:6px;border-bottom:1px solid #f0f2f5}.lrow .ln{grid-area:1/1}.lrow .suffix{grid-area:1/2}.lrow .del{grid-area:1/3}.lrow .vchk{grid-area:2/1/3/4}}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) 170px 130px auto 34px;gap:8px;align-items:center}
+@media (max-width:900px) and (min-width:621px){.lrow{grid-template-columns:minmax(0,1fr) 120px 34px;row-gap:4px}.lrow .ln{grid-area:1/1}.lrow .suffix{grid-area:1/2}.lrow .del{grid-area:1/3}.lrow .ld{grid-area:2/1}.lrow .vchk{grid-area:2/2/3/4}}
+@media (max-width:620px){.lrow{grid-template-columns:minmax(0,1fr) 110px 34px;row-gap:4px;padding-bottom:6px;border-bottom:1px solid #f0f2f5}.lrow .ln{grid-area:1/1}.lrow .suffix{grid-area:1/2}.lrow .del{grid-area:1/3}.lrow .ld{grid-area:2/1}.lrow .vchk{grid-area:2/2/3/4}}
 .lrow .vchk{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
 .lrow .vchk input{accent-color:var(--accent)}
 .del{border:none;background:none;color:#98a2b3;font-size:20px;cursor:pointer;border-radius:8px;height:34px}
@@ -221,6 +222,8 @@ input[type=date]{width:100%;padding:10px 12px;border:1px solid #cfd5dd;border-ra
       <div class="f"><span style="display:block;font-size:13px;font-weight:600;margin-bottom:5px">VAT na usłudze</span>
         <div class="seg" data-seg="detVat"><button type="button" data-v="0">Bez VAT</button><button type="button" data-v="8">8%</button><button type="button" data-v="23">23%</button></div>
         <div class="mini" id="detNet"></div></div>
+      <label class="f" style="grid-column:1/-1"><span>Nr faktury / zlecenia</span>
+        <input type="text" data-k="detDoc" placeholder="np. FV 123/11/2026 albo ZS/2026/0456"></label>
     </div>
   </div>
 </div>
@@ -269,6 +272,8 @@ input[type=date]{width:100%;padding:10px 12px;border:1px solid #cfd5dd;border-ra
   <label class="f"><span>Cena sprzedaży brutto <span class="req">*</span></span>
     <div class="suffix"><input type="text" inputmode="decimal" data-k="sale" placeholder="0"><i>zł</i></div>
     <em id="saleHint"></em><div class="errmsg" data-err="sale">Podaj cenę sprzedaży.</div></label>
+  <label class="f" style="margin-top:14px"><span>Nr faktury sprzedaży</span>
+    <input type="text" data-k="saleDoc" placeholder="np. FVM 45/11/2026"></label>
 </div>
 
 <!-- KROK 7 -->
@@ -377,8 +382,8 @@ if(typeof module!=='undefined') module.exports = { calc:calc, n:n, validVin:vali
 /* KONFIGURACJA WYSYŁKI: adres URL aplikacji Google Apps Script (apps-script/wysylka.gs) i ten sam TOKEN co w skrypcie */
 var CONFIG = { SEND_URL: '', TOKEN: 'wybrane-auto-2026' };
 var PRESETS = { repairs: [['Serwis olejowy + filtry',true],['Opony',true],['Klocki / tarcze',true],['Lakierowanie',true],['PDR – wgniotki',true],['Szyba',true],['Klimatyzacja',true],['Diagnostyka',true]] };
-var DEFAULT = { mode:'marza', vin:'', carName:'', buyDate:'', saleDate:'', price:'', detOn:true, detAmount:'', detVat:'23',
-  lines:[], renewOn:true, finOn:false, bank:'RCI Bank (Renault Finance)', bankOther:'', comm:'', sale:'', seller:'', step:0 };
+var DEFAULT = { mode:'marza', vin:'', carName:'', buyDate:'', saleDate:'', price:'', detOn:true, detAmount:'', detVat:'23', detDoc:'',
+  lines:[], renewOn:true, finOn:false, bank:'RCI Bank (Renault Finance)', bankOther:'', comm:'', sale:'', saleDoc:'', seller:'', step:0 };
 var KEY='kalkMarza.v2', state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ state = null; }
 if(!state) state = JSON.parse(JSON.stringify(DEFAULT)); else for(var k in DEFAULT) if(!(k in state)) state[k]=DEFAULT[k];
@@ -393,6 +398,7 @@ function $(s,el){ return (el||document).querySelector(s); }
 function $$(s,el){ return Array.prototype.slice.call((el||document).querySelectorAll(s)); }
 function esc(t){ return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function dpl(d){ if(!d) return '–'; var p=d.split('-'); return p[2]+'.'+p[1]+'.'+p[0]; }
+function docTxt(d){ d=String(d||'').trim(); return d ? ' · nr '+d : ''; }
 function bankName(){ return state.bank==='Inny' ? (state.bankOther||'inny bank') : state.bank; }
 
 var steps = $$('.step'), uid = Date.now();
@@ -461,20 +467,22 @@ function renderLines(cat){
   box.innerHTML = items.length ? items.map(function(l){
     return '<div class="lrow" data-id="'+l.id+'">'+
       '<input type="text" class="ln" value="'+esc(l.name)+'" placeholder="Opis">'+
+      '<input type="text" class="ld" value="'+esc(l.doc||'')+'" placeholder="Nr FV / zlecenia">'+
       '<div class="suffix"><input type="text" class="la" inputmode="decimal" value="'+esc(l.amount)+'" placeholder="0"><i>zł</i></div>'+
       '<label class="vchk"><input type="checkbox" class="lv" '+(l.vat?'checked':'')+'> FV 23%</label>'+
       '<button type="button" class="del" title="Usuń">×</button></div>';
   }).join('') : '<div style="color:var(--muted);font-size:13.5px">Brak usprawnień. Dodaj pozycję albo przejdź dalej.</div>';
   $$('.lrow',box).forEach(function(row){
     var l = state.lines.find(function(x){return String(x.id)===row.dataset.id;});
-    $('.ln',row).addEventListener('input',function(e){ l.name=e.target.value; save(); });
+    $('.ln',row).addEventListener('input',function(e){ l.name=e.target.value; refresh(); });
+    $('.ld',row).addEventListener('input',function(e){ l.doc=e.target.value; refresh(); });
     $('.la',row).addEventListener('input',function(e){ l.amount=e.target.value; refresh(); });
     $('.lv',row).addEventListener('change',function(e){ l.vat=e.target.checked; refresh(); });
     $('.del',row).addEventListener('click',function(){ state.lines = state.lines.filter(function(x){return x!==l;}); renderLines(cat); refresh(); });
   });
 }
 function addLine(cat,name,vat){
-  var l = {id:++uid, cat:cat, name:name, amount:'', vat:!!vat};
+  var l = {id:++uid, cat:cat, name:name, doc:'', amount:'', vat:!!vat};
   state.lines.push(l); renderLines(cat); refresh();
   var inp = $('.lrow[data-id="'+l.id+'"] .la'); if(inp) inp.focus();
 }
@@ -537,21 +545,25 @@ function renderResult(R){
   var e = errors(); if(Object.keys(e).length) al.push(['warn','Brakuje obowiązkowych danych: '+Object.keys(e).map(function(k){return {vin:'VIN',buyDate:'data zakupu',saleDate:'data sprzedaży',price:'cena zakupu',sale:'cena sprzedaży'}[k];}).join(', ')+'.']);
   if(R.S && R.margin<0) al.push(['bad','Marża ujemna: '+zl(R.margin)+'. Żeby wyjść na zero, cena sprzedaży musi wynosić co najmniej '+zl(R.saleFor(0))+' brutto.']);
   if(R.C>0 && R.carMargin<0 && R.margin>=0) al.push(['warn','Auto jest na minusie '+zl(R.carMargin)+', a marżę ratuje tylko prowizja z finansowania. Przy zakupie za gotówkę będzie strata.']);
+  var noDoc=[]; if(state.detOn && n(state.detAmount) && !String(state.detDoc||'').trim()) noDoc.push('Detailing');
+  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount) && !String(l.doc||'').trim()) noDoc.push(l.name||'Usprawnienie'); });
+  if(n(state.sale) && !String(state.saleDoc||'').trim()) noDoc.unshift('Faktura sprzedaży');
+  if(noDoc.length) al.push(['warn','Brak numeru faktury / zlecenia przy: '+esc(noDoc.join(', '))+'.']);
   $('#alerts').innerHTML = al.map(function(a){ return '<div class="info warn"'+(a[0]==='bad'?' style="background:var(--bad-soft);border-color:var(--bad);color:#5a1510"':'')+'>'+a[1]+'</div>'; }).join('');
 
   var rows=[];
   function sec(t){ rows.push('<tr class="sec"><td colspan="2">'+t+'</td></tr>'); }
   function row(t,v,c){ rows.push('<tr><td>'+t+'</td><td class="'+(c||'')+'">'+zl2(v)+'</td></tr>'); }
   sec('Sprzedaż');
-  row('Cena sprzedaży brutto', R.S);
+  row('Cena sprzedaży brutto'+esc(docTxt(state.saleDoc)), R.S);
   if(marza){ row('Marża brutto do VAT (sprzedaż − zakup)', Math.max(R.vatBase,0)); row('VAT-marża (× 23/123)', -R.vatOut,'minus'); }
   else row('VAT 23%', -R.vatOut,'minus');
   row('Sprzedaż netto', R.revNet);
   sec('Koszty netto');
   row(R.umowa ? 'Zakup (umowa kupna-sprzedaży)' : marza ? 'Zakup (kwota nabycia)' : 'Zakup netto', -R.N,'minus');
   if(R.umowa) row('Podatek PCC 2%', -R.pcc,'minus');
-  if(state.detOn) row('Detailing ('+(n(state.detVat)?state.detVat+'% VAT':'bez VAT')+')', -R.cDet,'minus');
-  state.lines.filter(function(l){return l.cat==='repairs' && n(l.amount);}).forEach(function(l){ row((l.name||'Usprawnienie')+(l.vat?' (FV 23%)':''), -lineCost(l),'minus'); });
+  if(state.detOn) row('Detailing ('+(n(state.detVat)?state.detVat+'% VAT':'bez VAT')+')'+esc(docTxt(state.detDoc)), -R.cDet,'minus');
+  state.lines.filter(function(l){return l.cat==='repairs' && n(l.amount);}).forEach(function(l){ row(esc((l.name||'Usprawnienie')+(l.vat?' (FV 23%)':'')+docTxt(l.doc)), -lineCost(l),'minus'); });
   if(R.renew) row('Certyfikat Renew', -R.renew,'minus');
   rows.push('<tr class="sum"><td>Marża na aucie</td><td class="'+(R.carMargin>=0?'plus':'minus')+'">'+zl2(R.carMargin)+'</td></tr>');
   if(state.finOn){ sec('Finansowanie'); row('Prowizja – '+esc(bankName()), R.C,'plus'); }
@@ -568,11 +580,11 @@ function summaryText(){
   if(state.seller) L.push('Handlowiec: '+state.seller);
   L.push('Zakup na: '+(R.umowa?'umowę kupna-sprzedaży (sprzedaż VAT-marża)':marza?'fakturę VAT-marża':'fakturę VAT 23%'));
   L.push('');
-  L.push('Sprzedaż brutto: '+zl2(R.S)+' | netto: '+zl2(R.revNet));
+  L.push('Sprzedaż brutto: '+zl2(R.S)+' | netto: '+zl2(R.revNet)+docTxt(state.saleDoc));
   L.push('Zakup'+(marza?'':' netto')+': '+zl2(R.N));
   if(R.umowa) L.push('Podatek PCC 2%: '+zl2(R.pcc));
-  if(state.detOn) L.push('Detailing netto: '+zl2(R.cDet));
-  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) L.push('• '+(l.name||'Usprawnienie')+': '+zl2(lineCost(l))+' netto'); });
+  if(state.detOn) L.push('Detailing netto: '+zl2(R.cDet)+docTxt(state.detDoc));
+  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) L.push('• '+(l.name||'Usprawnienie')+': '+zl2(lineCost(l))+' netto'+docTxt(l.doc)); });
   if(R.renew) L.push('Certyfikat Renew: '+zl2(R.renew)+' netto');
   if(state.finOn) L.push('Prowizja z finansowania ('+bankName()+'): '+zl2(R.C));
   L.push('');
@@ -582,21 +594,21 @@ function summaryText(){
 function reportPayload(){
   var R = calc(state), marza=!R.vatMode, rows=[];
   function r(l,v,t){ rows.push([l, zl2(v), t||'']); }
-  r('Cena sprzedaży brutto', R.S);
+  r('Cena sprzedaży brutto'+docTxt(state.saleDoc), R.S);
   if(marza){ r('Marża brutto do VAT (sprzedaż − zakup)', Math.max(R.vatBase,0)); r('VAT-marża (× 23/123)', -R.vatOut); }
   else r('VAT 23%', -R.vatOut);
   r('Sprzedaż netto', R.revNet, 'b');
   r(R.umowa ? 'Zakup (umowa kupna-sprzedaży)' : marza ? 'Zakup (kwota nabycia)' : 'Zakup netto', -R.N);
   if(R.umowa) r('Podatek PCC 2%', -R.pcc);
-  if(state.detOn) r('Detailing netto', -R.cDet);
-  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) r((l.name||'Usprawnienie')+(l.vat?' (FV 23%)':''), -lineCost(l)); });
+  if(state.detOn) r('Detailing netto'+docTxt(state.detDoc), -R.cDet);
+  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) r((l.name||'Usprawnienie')+(l.vat?' (FV 23%)':'')+docTxt(l.doc), -lineCost(l)); });
   if(R.renew) r('Certyfikat Renew', -R.renew);
   r('Marża na aucie', R.carMargin, 'b');
   if(state.finOn) r('Prowizja z finansowania – '+bankName(), R.C);
   r('MARŻA I NETTO', R.margin, 'total');
   return { token: CONFIG.TOKEN, vin: state.vin, car: state.carName, seller: state.seller,
     basis: R.umowa ? 'Umowa kupna-sprzedaży (sprzedaż VAT-marża)' : marza ? 'Faktura VAT-marża' : 'Faktura VAT 23%',
-    buyDate: dpl(state.buyDate), saleDate: dpl(state.saleDate), days: R.days, bank: state.finOn ? bankName() : '',
+    buyDate: dpl(state.buyDate), saleDate: dpl(state.saleDate), saleDoc: state.saleDoc, days: R.days, bank: state.finOn ? bankName() : '',
     margin: zl2(R.margin), pct: pc(R.pct), rows: rows, text: summaryText() };
 }
 function setStatus(html, bad){ var e=$('#sendStatus'); e.style.display=''; e.className='info'+(bad?' warn':''); e.innerHTML=html; }

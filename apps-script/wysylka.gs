@@ -27,7 +27,7 @@ function doPost(e) {
     var html = raport_(d, vin);
     var pdf = Utilities.newBlob(html, MimeType.HTML, 'raport.html')
       .getAs(MimeType.PDF)
-      .setName('Marza_' + vin + '.pdf');
+      .setName('Karta_transakcyjna_' + vin + '.pdf');
 
     var temat = 'Marża I – VIN ' + vin + (d.car ? ' – ' + d.car : '');
     GmailApp.sendEmail(ODBIORCA, temat, d.text || temat, {
@@ -38,7 +38,7 @@ function doPost(e) {
 
     if (ARKUSZ_ID) {
       SpreadsheetApp.openById(ARKUSZ_ID).getSheets()[0].appendRow([
-        new Date(), vin, d.car, d.seller, d.basis, d.buyDate, d.saleDate, d.days, d.bank, d.margin, d.pct
+        new Date(), vin, d.car, d.seller, d.basis, d.buyDate, d.saleDate, d.saleDoc, d.days, d.bank, d.margin, d.pct
       ]);
     }
     return out_('ok');
@@ -55,7 +55,7 @@ function raport_(d, vin) {
   }).join('');
   var info = [
     ['VIN', vin], ['Auto', d.car || '–'], ['Handlowiec', d.seller || '–'], ['Podstawa zakupu', d.basis],
-    ['Data zakupu', d.buyDate], ['Data sprzedaży', d.saleDate], ['Dni w stocku', d.days == null ? '–' : d.days],
+    ['Data zakupu', d.buyDate], ['Data sprzedaży', d.saleDate], ['Nr faktury sprzedaży', d.saleDoc || '–'], ['Dni w stocku', d.days == null ? '–' : d.days],
     ['Finansowanie', d.bank || 'brak']
   ].map(function (r) { return '<tr><td style="color:#5f6b7a">' + r[0] + '</td><td>' + esc_(r[1]) + '</td></tr>'; }).join('');
   return '<html><head><meta charset="utf-8"><style>' +
@@ -63,7 +63,7 @@ function raport_(d, vin) {
     'h1{font-size:20px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:12px}' +
     'td{padding:6px 4px;border-bottom:1px solid #e3e6eb}.big{font-size:28px;font-weight:bold;color:#1f7a5a}' +
     '</style></head><body>' +
-    '<h1>Kalkulator Marży SU - Adamowscy</h1><div style="font-size:15px;font-weight:bold">Raport marży I netto</div><div style="color:#5f6b7a">Wygenerowano ' +
+    '<h1>Karta transakcyjna</h1><div style="font-size:15px;font-weight:bold">Marża I netto · SU - Adamowscy</div><div style="color:#5f6b7a">Wygenerowano ' +
     Utilities.formatDate(new Date(), 'Europe/Warsaw', 'dd.MM.yyyy HH:mm') + '</div>' +
     '<p class="big">' + esc_(d.margin) + ' <span style="font-size:15px;color:#5f6b7a">(' + esc_(d.pct) + ')</span></p>' +
     '<table>' + info + '</table><h2 style="font-size:15px;margin-top:20px">Rozliczenie</h2><table>' + rows + '</table>' +
