@@ -1,4 +1,4 @@
-# Kalkulator marży – auta używane
+# Kalkulator Marży SU - Adamowscy
 
 Kreator krok po kroku liczący **marżę I netto** na aucie używanym (auta krajowe):
 

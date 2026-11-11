@@ -33,7 +33,7 @@ function doPost(e) {
     GmailApp.sendEmail(ODBIORCA, temat, d.text || temat, {
       htmlBody: '<p>Raport marży w załączniku.</p><pre style="font-family:Arial,sans-serif">' + esc_(d.text || '') + '</pre>',
       attachments: [pdf],
-      name: 'Kalkulator marży'
+      name: 'Kalkulator Marży SU - Adamowscy'
     });
 
     if (ARKUSZ_ID) {
@@ -63,7 +63,7 @@ function raport_(d, vin) {
     'h1{font-size:20px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:12px}' +
     'td{padding:6px 4px;border-bottom:1px solid #e3e6eb}.big{font-size:28px;font-weight:bold;color:#1f7a5a}' +
     '</style></head><body>' +
-    '<h1>Raport marży I netto</h1><div style="color:#5f6b7a">Wygenerowano ' +
+    '<h1>Kalkulator Marży SU - Adamowscy</h1><div style="font-size:15px;font-weight:bold">Raport marży I netto</div><div style="color:#5f6b7a">Wygenerowano ' +
     Utilities.formatDate(new Date(), 'Europe/Warsaw', 'dd.MM.yyyy HH:mm') + '</div>' +
     '<p class="big">' + esc_(d.margin) + ' <span style="font-size:15px;color:#5f6b7a">(' + esc_(d.pct) + ')</span></p>' +
     '<table>' + info + '</table><h2 style="font-size:15px;margin-top:20px">Rozliczenie</h2><table>' + rows + '</table>' +
