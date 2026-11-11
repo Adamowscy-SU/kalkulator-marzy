@@ -295,9 +295,10 @@ input[type=date]{width:100%;padding:10px 12px;border:1px solid #cfd5dd;border-ra
   <div class="tool">
     <label class="f"><span>Handlowiec (kto liczy) <span class="req">*</span></span>
       <input type="text" data-k="seller" placeholder="Imię i nazwisko"><div class="errmsg" data-err="seller">Podaj imię i nazwisko handlowca.</div></label>
-    <p style="margin-top:10px">Raport PDF trafi na firmowy adres. W temacie maila jest numer VIN.</p>
+    <p style="margin-top:10px">„Wyślij” wysyła kartę na firmowy adres i zapisuje ją w rejestrze. „Pobierz” zapisuje kartę jako plik PDF na tym urządzeniu.</p>
     <div class="nav" style="justify-content:flex-start;flex-wrap:wrap;margin-top:12px">
       <button class="btn primary" type="button" id="sendBtn">Wyślij raport PDF</button>
+      <button class="btn" type="button" id="pdfBtn">Pobierz kartę transakcyjną (PDF)</button>
       <button class="btn" type="button" id="copyBtn">Kopiuj podsumowanie</button>
     </div>
     <div class="info" id="sendStatus" style="display:none"></div>
@@ -636,6 +637,102 @@ function sendReport(){
     .catch(function(){ setStatus('Nie udało się wysłać. Sprawdź internet albo otwórz kalkulator z firmowego linku (w podglądzie Claude wysyłka jest zablokowana).', true); })
     .then(function(){ b.disabled=false; b.textContent='Wyślij raport PDF'; });
 }
+
+/* ===== Karta transakcyjna PDF (rysowana na canvas, zapisywana jako PDF z obrazem JPEG) ===== */
+var PT = 3; // piksele na punkt PDF
+function cardPages(){
+  var P = reportPayload();
+  var W = 595.28, H = 841.89, M = 42, pages = [], ctx, y;
+  var FONT = 'Inter, Arial, Helvetica, sans-serif';
+  function newPage(){
+    var c = document.createElement('canvas'); c.width = Math.round(W*PT); c.height = Math.round(H*PT);
+    ctx = c.getContext('2d'); ctx.scale(PT,PT); ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+    ctx.textBaseline = 'alphabetic'; pages.push(c); y = M;
+  }
+  function font(sz, w){ ctx.font = (w||400)+' '+sz+'px '+FONT; }
+  function text(t, x, yy, sz, w, color, align){ font(sz,w); ctx.fillStyle=color||'#0f1b2d'; ctx.textAlign=align||'left'; ctx.fillText(t, x, yy); }
+  function line(yy, color, wdt){ ctx.strokeStyle=color||'#e3e6eb'; ctx.lineWidth=wdt||0.6; ctx.beginPath(); ctx.moveTo(M,yy); ctx.lineTo(W-M,yy); ctx.stroke(); }
+  function wrap(t, maxW, sz, w){
+    font(sz,w); var words=String(t).split(' '), out=[], cur='';
+    words.forEach(function(wd){ var tr = cur ? cur+' '+wd : wd; if(ctx.measureText(tr).width > maxW && cur){ out.push(cur); cur=wd; } else cur=tr; });
+    if(cur) out.push(cur); return out;
+  }
+  function ensure(h){ if(y + h > H - M - 14){ newPage(); } }
+  newPage();
+  text('Karta transakcyjna', M, y+18, 20, 700);
+  text('Marża I netto · SU - Adamowscy', M, y+36, 11, 600);
+  var now = new Date();
+  text('Wygenerowano '+now.toLocaleDateString('pl-PL')+' '+now.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}), M, y+50, 9, 400, '#5f6b7a');
+  y += 88;
+  text(P.margin, M, y, 26, 800, '#1f7a5a');
+  font(26,800); var mw = ctx.measureText(P.margin).width;
+  text('('+P.pct+')', M+mw+8, y, 12, 600, '#5f6b7a');
+  y += 22;
+  var info = [['VIN',P.vin],['Auto',P.car||'–'],['Handlowiec',P.seller||'–'],['Podstawa zakupu',P.basis],['Data zakupu',P.buyDate],
+    ['Data sprzedaży',P.saleDate],['Nr faktury sprzedaży',P.saleDoc||'–'],['Dni w stocku',P.days==null?'–':String(P.days)],['Finansowanie',P.bank||'brak']];
+  info.forEach(function(r){
+    var lines = wrap(r[1], W-M*2-150, 10.5, 400), h = 8 + lines.length*13;
+    ensure(h+2);
+    text(r[0], M+3, y+14, 10.5, 400, '#5f6b7a');
+    lines.forEach(function(l,i){ text(l, M+150, y+14+i*13, 10.5, 400); });
+    y += h+4; line(y);
+  });
+  y += 26; ensure(30);
+  text('Rozliczenie', M, y, 12.5, 700); y += 8;
+  P.rows.forEach(function(r){
+    var bold = r[2]==='b' || r[2]==='total', sz = r[2]==='total' ? 12 : 10.5, wt = bold ? 700 : 400;
+    var lines = wrap(r[0], W-M*2-130, sz, wt), h = 8 + lines.length*(sz+2.5);
+    ensure(h+4);
+    if(r[2]==='total') line(y, '#0f1b2d', 1.4); else if(r[2]==='b') line(y, '#0f1b2d', 0.8);
+    lines.forEach(function(l,i){ text(l, M+3, y+14+i*(sz+2.5), sz, wt); });
+    text(r[1], W-M-3, y+14, sz, wt, '#0f1b2d', 'right');
+    y += h+4; if(r[2]!=='total') line(y);
+  });
+  pages.forEach(function(c, i){ var cx = c.getContext('2d'); cx.font = '400 8.5px '+FONT; cx.fillStyle = '#98a2b3'; cx.textAlign = 'left';
+    cx.fillText('Kalkulator Marży SU - Adamowscy · VIN '+P.vin+(pages.length>1 ? ' · strona '+(i+1)+'/'+pages.length : ''), M, H-22); });
+  return pages;
+}
+function b64ToBytes(b64){ var bin = atob(b64), u = new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+function buildPdf(jpegs){ // jpegs: [{bytes, w, h}]
+  var enc = new TextEncoder(), parts = [], offs = [], len = 0, n = 2 + jpegs.length*3;
+  function push(x){ var b = typeof x==='string' ? enc.encode(x) : x; parts.push(b); len += b.length; }
+  function obj(id, body){ offs[id] = len; push(id+' 0 obj\n'); body(); push('\nendobj\n'); }
+  push('%PDF-1.4\n'); push(new Uint8Array([37,226,227,207,211,10]));
+  var kids = jpegs.map(function(_,i){ return (3+i*3)+' 0 R'; }).join(' ');
+  obj(1, function(){ push('<< /Type /Catalog /Pages 2 0 R >>'); });
+  obj(2, function(){ push('<< /Type /Pages /Kids ['+kids+'] /Count '+jpegs.length+' >>'); });
+  jpegs.forEach(function(j,i){
+    var pg = 3+i*3, ct = pg+1, im = pg+2, cs = 'q 595.28 0 0 841.89 0 0 cm /Im0 Do Q';
+    obj(pg, function(){ push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 '+im+' 0 R >> >> /Contents '+ct+' 0 R >>'); });
+    obj(ct, function(){ push('<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream'); });
+    obj(im, function(){ push('<< /Type /XObject /Subtype /Image /Width '+j.w+' /Height '+j.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+j.bytes.length+' >>\nstream\n'); push(j.bytes); push('\nendstream'); });
+  });
+  var xref = len, x = 'xref\n0 '+(n+1)+'\n0000000000 65535 f \n';
+  for(var i=1;i<=n;i++) x += String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  push(x+'trailer\n<< /Size '+(n+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF\n');
+  var out = new Uint8Array(len), p = 0; parts.forEach(function(b){ out.set(b,p); p+=b.length; });
+  return out;
+}
+function makeCardPdf(){
+  var pages = cardPages();
+  return buildPdf(pages.map(function(c){ return { bytes: b64ToBytes(c.toDataURL('image/jpeg', 0.88).split(',')[1]), w: c.width, h: c.height }; }));
+}
+function downloadCard(){
+  var e = errors(); delete e.seller;
+  if(Object.keys(e).length){ setStatus('Uzupełnij brakujące dane (VIN, daty, ceny), żeby pobrać kartę.', true); return; }
+  var b = $('#pdfBtn'); b.disabled = true; b.textContent = 'Przygotowuję PDF…';
+  var go = function(){
+    try{
+      var bytes = makeCardPdf(), name = 'Karta_transakcyjna_'+String(state.vin).toUpperCase()+'.pdf';
+      var blob = new Blob([bytes], {type:'application/pdf'}), url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+      setStatus('Pobrano <b>'+esc(name)+'</b>.'); toast('Karta pobrana');
+    } catch(err){ setStatus('Nie udało się utworzyć PDF: '+esc(err.message||err), true); }
+    b.disabled = false; b.textContent = 'Pobierz kartę transakcyjną (PDF)';
+  };
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go, go);
+}
 function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show');},1800); }
 
 $$('.choice').forEach(function(c){ c.addEventListener('click',function(){ state.mode=c.dataset.mode; refresh(); state.step=1; showStep(); }); });
@@ -643,6 +740,7 @@ $('#nextBtn').addEventListener('click',function(){ var t=Math.min(state.step+1,s
 $('#prevBtn').addEventListener('click',function(){ state.step=Math.max(state.step-1,0); showStep(); });
 $('#progress').addEventListener('click',function(e){ var b=e.target.closest('[data-go]'); if(!b) return; var t=+b.dataset.go; if(t>state.step && !canGo(t)) return; state.step=t; showStep(); });
 $('#sendBtn').addEventListener('click',sendReport);
+$('#pdfBtn').addEventListener('click',downloadCard);
 $('[data-k="seller"]').addEventListener('input',function(e){ if(e.target.value.trim()){ e.target.classList.remove('err'); $('[data-err="seller"]').classList.remove('show'); } });
 $('#copyBtn').addEventListener('click',function(){
   var t = summaryText();
