@@ -129,13 +129,35 @@ h3.sec{font-size:16px;margin:24px 0 8px}
 .toast.show{opacity:1}
 .foot{color:var(--muted);font-size:12px;margin-top:18px}
 </style>
+<style>
+.seg{display:inline-flex;border:1px solid #cfd5dd;border-radius:10px;overflow:hidden;background:#fff}
+.seg button{border:none;background:none;font:inherit;padding:10px 16px;cursor:pointer;color:var(--muted);font-weight:600}
+.seg button+button{border-left:1px solid #cfd5dd}
+.seg button.on{background:var(--accent);color:#fff}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;cursor:pointer}
+.switch b{font-size:15px}
+.switch .sw{position:relative;width:48px;height:28px;flex:none}
+.switch .sw input{opacity:0;width:0;height:0;position:absolute}
+.switch .sw span{position:absolute;inset:0;background:#cfd5dd;border-radius:999px;transition:.2s}
+.switch .sw span:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch .sw input:checked+span{background:var(--accent)}
+.switch .sw input:checked+span:before{transform:translateX(20px)}
+.req{color:var(--bad)}
+.err{border-color:var(--bad)!important;background:#fffafa}
+.errmsg{color:var(--bad);font-size:12.5px;margin-top:4px;display:none}
+.errmsg.show{display:block}
+input[type=date]{width:100%;padding:10px 12px;border:1px solid #cfd5dd;border-radius:10px;font:inherit;background:#fff;color:inherit}
+.choice{text-align:center;padding:22px 16px}
+.choice b{font-size:18px}
+.mini{font-size:13px;color:var(--muted);margin-top:6px}
+</style>
 </head>
 <body>
 <header>
   <div class="wrap">
     <div>
       <h1>Kalkulator marży – auta używane</h1>
-      <p>VAT-marża / VAT 23% · import · detailing · naprawy · prowizje z finansowania</p>
+      <p>Marża I netto · VAT-marża / VAT 23% · detailing · usprawnienia · finansowanie</p>
     </div>
     <button class="btn ghost small" id="resetBtn" type="button">Nowa kalkulacja</button>
   </div>
@@ -149,196 +171,137 @@ h3.sec{font-size:16px;margin:24px 0 8px}
 <div class="card">
 
 <!-- KROK 1 -->
-<div class="step" data-title="Rodzaj transakcji">
+<div class="step" data-title="Faktura">
   <div class="kicker">Krok 1</div>
-  <h2>Jak kupujesz i sprzedajesz auto?</h2>
-  <p class="lead">To decyduje o tym, od czego liczony jest VAT, i najmocniej wpływa na wynik.</p>
+  <h2>Na jakiej fakturze kupiono auto?</h2>
+  <p class="lead">Auto sprzedajemy na tej samej podstawie, na jakiej zostało kupione.</p>
   <div class="choices">
-    <button type="button" class="choice" data-mode="marza">
-      <b>VAT-marża (art. 120)</b>
-      <span>Kupujesz od osoby prywatnej, z faktury VAT-marża albo z umowy kupna-sprzedaży. Sprzedajesz na fakturze VAT-marża. VAT 23% płacisz tylko od różnicy między ceną sprzedaży a ceną zakupu.</span>
-    </button>
-    <button type="button" class="choice" data-mode="vat">
-      <b>VAT 23% (pełna faktura)</b>
-      <span>Kupujesz na fakturze VAT 23% (np. auto poleasingowe, od firmy) i odliczasz VAT. Sprzedajesz z VAT 23% od całej ceny.</span>
-    </button>
+    <button type="button" class="choice" data-mode="marza"><b>Faktura VAT-marża</b><span>VAT liczony tylko od marży</span></button>
+    <button type="button" class="choice" data-mode="vat"><b>Pełna faktura VAT 23%</b><span>VAT od całej ceny</span></button>
   </div>
-  <div class="info" id="modeInfo"></div>
 </div>
 
 <!-- KROK 2 -->
-<div class="step" data-title="Zakup">
+<div class="step" data-title="Dane auta">
   <div class="kicker">Krok 2</div>
-  <h2>Zakup auta</h2>
-  <p class="lead">Podaj cenę z dokumentu zakupu.</p>
+  <h2>Dane auta i zakup</h2>
+  <p class="lead">Pola z <span class="req">*</span> są obowiązkowe.</p>
   <div class="grid">
-    <label class="f" style="grid-column:1/-1"><span>Auto (opcjonalnie)</span>
-      <input type="text" data-k="carName" placeholder="np. Renault Megane 1.3 TCe 2020, VIN…"></label>
-    <label class="f"><span>Waluta zakupu</span>
-      <select data-k="currency"><option value="PLN">PLN</option><option value="EUR">EUR</option></select></label>
-    <label class="f" id="fxWrap"><span>Kurs EUR/PLN</span>
-      <div class="suffix"><input type="text" inputmode="decimal" data-k="fx" data-num><i>zł</i></div>
-      <em>Do VAT i akcyzy liczy się kurs NBP z dnia roboczego przed powstaniem obowiązku.</em></label>
-    <label class="f" style="grid-column:1/-1"><span id="priceLabel">Cena zakupu</span>
-      <div class="suffix"><input type="text" inputmode="decimal" data-k="price" data-num placeholder="0"><i id="priceCur">zł</i></div>
-      <em id="priceHint"></em></label>
+    <label class="f" style="grid-column:1/-1"><span>Numer VIN <span class="req">*</span></span>
+      <input type="text" data-k="vin" maxlength="17" autocomplete="off" style="text-transform:uppercase;letter-spacing:.06em" placeholder="17 znaków">
+      <div class="errmsg" data-err="vin">VIN musi mieć 17 znaków (litery i cyfry, bez I, O, Q).</div></label>
+    <label class="f" style="grid-column:1/-1"><span>Marka i model</span>
+      <input type="text" data-k="carName" placeholder="np. Renault Megane 1.3 TCe 2020"></label>
+    <label class="f"><span>Data zakupu <span class="req">*</span></span>
+      <input type="date" data-k="buyDate"><div class="errmsg" data-err="buyDate">Podaj datę zakupu.</div></label>
+    <label class="f"><span>Data sprzedaży <span class="req">*</span></span>
+      <input type="date" data-k="saleDate"><div class="errmsg" data-err="saleDate">Podaj datę sprzedaży (nie wcześniejszą niż zakup).</div></label>
+    <label class="f" style="grid-column:1/-1"><span id="priceLabel">Cena zakupu <span class="req">*</span></span>
+      <div class="suffix"><input type="text" inputmode="decimal" data-k="price" placeholder="0"><i>zł</i></div>
+      <em id="priceHint"></em><div class="errmsg" data-err="price">Podaj cenę zakupu.</div></label>
   </div>
-  <div class="info" id="purchaseInfo"></div>
+  <div class="info" id="daysInfo" style="display:none"></div>
 </div>
 
 <!-- KROK 3 -->
-<div class="step" data-title="Import i opłaty">
+<div class="step" data-title="Detailing">
   <div class="kicker">Krok 3</div>
-  <h2>Import, transport i opłaty</h2>
-  <p class="lead">Wszystko, co płacisz, zanim auto stanie u Ciebie gotowe do rejestracji.</p>
-  <label class="toggle"><input type="checkbox" data-k="importOn"> Auto z importu (nalicz akcyzę)</label>
-  <div class="grid" id="akcyzaWrap">
-    <label class="f"><span>Stawka akcyzy</span>
-      <select data-k="akcyzaRate">
-        <option value="3.1">3,1% – silnik do 2000 cm³</option>
-        <option value="18.6">18,6% – silnik powyżej 2000 cm³</option>
-        <option value="1.55">1,55% – hybryda do 2000 cm³</option>
-        <option value="9.3">9,3% – hybryda 2000–3500 cm³</option>
-        <option value="0">0% – elektryk</option>
-        <option value="custom">Własna stawka…</option>
-      </select></label>
-    <label class="f" id="akcyzaCustomWrap"><span>Własna stawka</span>
-      <div class="suffix"><input type="text" inputmode="decimal" data-k="akcyzaCustom" data-num><i>%</i></div></label>
-    <div class="f"><span style="display:block;font-size:13px;font-weight:600;margin-bottom:5px">Akcyza do zapłaty</span>
-      <div class="big money" id="akcyzaOut" style="font-size:22px">0 zł</div>
-      <em style="font-style:normal;font-size:12.5px;color:var(--muted)">liczona od ceny zakupu w PLN. Akcyzy nie ma przy aucie kupionym w Polsce.</em></div>
+  <h2>Przygotowanie do sprzedaży (detailing)</h2>
+  <p class="lead">Jedna kwota za całe przygotowanie auta.</p>
+  <label class="switch"><b>Detailing wykonany?</b><span class="sw"><input type="checkbox" data-k="detOn"><span></span></span></label>
+  <div id="detWrap">
+    <div class="grid">
+      <label class="f"><span>Kwota (brutto, jak na dokumencie)</span>
+        <div class="suffix"><input type="text" inputmode="decimal" data-k="detAmount" placeholder="0"><i>zł</i></div></label>
+      <div class="f"><span style="display:block;font-size:13px;font-weight:600;margin-bottom:5px">VAT na usłudze</span>
+        <div class="seg" data-seg="detVat"><button type="button" data-v="0">Bez VAT</button><button type="button" data-v="8">8%</button><button type="button" data-v="23">23%</button></div>
+        <div class="mini" id="detNet"></div></div>
+    </div>
   </div>
-  <h3 class="sec">Koszty i opłaty</h3>
-  <div class="lines" data-cat="import"></div>
-  <div class="chips" data-presets="import"></div>
-  <div class="subtotal"><span>Razem (koszt dla Ciebie)</span><span class="money" data-sub="import"></span></div>
 </div>
 
 <!-- KROK 4 -->
-<div class="step" data-title="Detailing">
+<div class="step" data-title="Usprawnienia">
   <div class="kicker">Krok 4</div>
-  <h2>Detailing</h2>
-  <p class="lead">Jeśli robisz to we własnym studiu, wpisz rzeczywisty koszt (chemia + czas pracownika), a nie cenę z cennika dla klienta.</p>
-  <div class="lines" data-cat="detailing"></div>
-  <div class="chips" data-presets="detailing"></div>
-  <div class="subtotal"><span>Razem detailing</span><span class="money" data-sub="detailing"></span></div>
-  <div class="info">Zaznacz <b>FV 23%</b>, jeśli masz fakturę z VAT. Wtedy kosztem jest kwota netto, bo VAT odliczasz. Wpisuj kwoty <b>brutto</b>, tak jak na dokumencie.</div>
+  <h2>Naprawy i usprawnienia</h2>
+  <p class="lead">Mechanika, opony, lakier, serwis. Wpisz kwoty brutto i zaznacz <b>FV 23%</b>, jeśli jest faktura z VAT.</p>
+  <div class="lines" data-cat="repairs"></div>
+  <div class="chips" data-presets="repairs"></div>
+  <div class="subtotal"><span>Razem usprawnienia (netto)</span><span class="money" data-sub="repairs"></span></div>
 </div>
 
 <!-- KROK 5 -->
-<div class="step" data-title="Usprawnienia">
+<div class="step" data-title="Finansowanie">
   <div class="kicker">Krok 5</div>
-  <h2>Naprawy i usprawnienia</h2>
-  <p class="lead">Mechanika, opony, lakier, serwis: wszystko, co robisz, żeby auto się sprzedało.</p>
-  <div class="lines" data-cat="repairs"></div>
-  <div class="chips" data-presets="repairs"></div>
-  <div class="subtotal"><span>Razem usprawnienia</span><span class="money" data-sub="repairs"></span></div>
-  <div class="info warn" id="repairsWarn">W VAT-marży koszty napraw <b>nie obniżają podstawy VAT</b>. VAT liczy się tylko od różnicy cen sprzedaży i zakupu. Każda złotówka wydana na naprawę obniża więc zysk o pełną złotówkę, a VAT zostaje taki sam. VAT z faktur za naprawy możesz odliczyć.</div>
+  <h2>Finansowanie</h2>
+  <p class="lead">Prowizja z finansowania wlicza się do marży.</p>
+  <label class="switch"><b>Klient bierze finansowanie?</b><span class="sw"><input type="checkbox" data-k="finOn"><span></span></span></label>
+  <div id="finWrap">
+    <div class="grid">
+      <label class="f"><span>Bank / firma finansująca</span>
+        <select data-k="bank">
+          <option>RCI Bank (Renault Finance)</option>
+          <option>PKO Leasing</option>
+          <option>VW Financial Services</option>
+          <option>Santander Consumer</option>
+          <option>mLeasing</option>
+          <option>Inny</option>
+        </select></label>
+      <label class="f" id="bankOtherWrap"><span>Nazwa banku</span>
+        <input type="text" data-k="bankOther" placeholder="wpisz nazwę"></label>
+      <label class="f" style="grid-column:1/-1"><span>Prowizja z finansowania (netto)</span>
+        <div class="suffix"><input type="text" inputmode="decimal" data-k="comm" placeholder="0"><i>zł</i></div></label>
+    </div>
+  </div>
 </div>
 
 <!-- KROK 6 -->
-<div class="step" data-title="Finansowanie">
+<div class="step" data-title="Sprzedaż">
   <div class="kicker">Krok 6</div>
-  <h2>Finansowanie i ubezpieczenia</h2>
-  <p class="lead">Prowizja od banku lub leasingu to Twój dodatkowy przychód, często większy niż sama marża na aucie.</p>
-  <label class="toggle"><input type="checkbox" data-k="finOn"> Klient bierze finansowanie (kredyt / leasing / pożyczka leasingowa)</label>
-  <div id="finWrap">
-    <div class="grid">
-      <label class="f"><span>Kwota finansowana</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="finAmount" data-num><i>zł</i></div>
-        <em><a href="#" id="finFill">Wstaw cenę sprzedaży minus wpłata własna →</a></em></label>
-      <label class="f"><span>Sposób naliczenia prowizji</span>
-        <select data-k="commType"><option value="pct">% od kwoty finansowania</option><option value="fixed">Kwota stała</option></select></label>
-      <label class="f" id="commPctWrap"><span>Prowizja</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="commPct" data-num><i>%</i></div></label>
-      <label class="f" id="commFixedWrap"><span>Prowizja (netto)</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="commFixed" data-num><i>zł</i></div></label>
-      <label class="f"><span>Prowizja z ubezpieczenia (OC/AC, GAP)</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="insComm" data-num><i>zł</i></div></label>
-      <label class="f"><span>Inne prowizje (gwarancja, pakiet serwisowy)</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="otherComm" data-num><i>zł</i></div></label>
-      <label class="f" style="grid-column:1/-1"><span>Twoja dopłata do finansowania (subwencja oprocentowania, rabat dla klienta)</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="finSubsidy" data-num><i>zł</i></div>
-        <em>Wpisz, jeśli „kupujesz” klientowi niższą ratę. To koszt.</em></label>
-    </div>
-    <div class="subtotal"><span>Przychód z finansowania (netto)</span><span class="money" id="finOut"></span></div>
-    <div class="info">Wpisuj prowizje <b>netto</b>, czyli to, co realnie zostaje Tobie. VAT od prowizji (o ile występuje) jest tylko przepływowy i nie zmienia zysku. Pośrednictwo w usługach finansowych jest zwykle zwolnione z VAT. Sprawdź to z księgową dla swojej umowy z bankiem.</div>
-  </div>
+  <h2>Cena sprzedaży</h2>
+  <p class="lead">Kwota brutto z faktury sprzedaży.</p>
+  <label class="f"><span>Cena sprzedaży brutto <span class="req">*</span></span>
+    <div class="suffix"><input type="text" inputmode="decimal" data-k="sale" placeholder="0"><i>zł</i></div>
+    <em id="saleHint"></em><div class="errmsg" data-err="sale">Podaj cenę sprzedaży.</div></label>
 </div>
 
 <!-- KROK 7 -->
-<div class="step" data-title="Sprzedaż">
-  <div class="kicker">Krok 7</div>
-  <h2>Sprzedaż</h2>
-  <p class="lead">Cena, którą płaci klient, i koszty samej sprzedaży.</p>
-  <div class="grid">
-    <label class="f" style="grid-column:1/-1"><span>Cena sprzedaży brutto (dla klienta)</span>
-      <div class="suffix"><input type="text" inputmode="decimal" data-k="sale" data-num placeholder="0"><i>zł</i></div>
-      <em id="saleHint"></em></label>
-  </div>
-  <h3 class="sec">Koszty sprzedaży</h3>
-  <div class="lines" data-cat="sales"></div>
-  <div class="chips" data-presets="sales"></div>
-  <div class="subtotal"><span>Razem koszty sprzedaży</span><span class="money" data-sub="sales"></span></div>
-  <h3 class="sec">Koszt postoju i podatek (opcjonalnie)</h3>
-  <div class="grid">
-    <label class="f"><span>Dni do sprzedaży</span>
-      <div class="suffix"><input type="text" inputmode="decimal" data-k="days" data-num><i>dni</i></div></label>
-    <label class="f"><span>Koszt kapitału (rocznie)</span>
-      <div class="suffix"><input type="text" inputmode="decimal" data-k="capRate" data-num><i>%</i></div>
-      <em>Np. oprocentowanie kredytu obrotowego. Zostaw 0, jeśli to Twoja gotówka.</em></label>
-    <label class="f" style="grid-column:1/-1"><span>Podatek dochodowy (szacunkowo)</span>
-      <select data-k="pit">
-        <option value="0">Nie licz</option>
-        <option value="19">19% – podatek liniowy</option>
-        <option value="12">12% – skala (I próg)</option>
-        <option value="32">32% – skala (II próg)</option>
-        <option value="9">9% – CIT (mała spółka)</option>
-      </select>
-      <em>Szacunek bez składki zdrowotnej i bez innych kosztów firmy.</em></label>
-  </div>
-</div>
-
-<!-- KROK 8 -->
-<div class="step" data-title="Wynik">
+<div class="step" data-title="Marża">
   <div class="kicker">Wynik</div>
-  <h2 id="resTitle">Twoja marża</h2>
+  <h2 id="resTitle">Marża I netto</h2>
   <p class="lead" id="resLead"></p>
   <div class="alerts" id="alerts"></div>
   <div class="hero">
-    <div class="tile main" id="tileProfit"><div class="t">Zysk łącznie (netto)</div><div class="v money" id="rProfit"></div><div class="s" id="rProfitS"></div></div>
-    <div class="tile"><div class="t">Marża %</div><div class="v" id="rPct"></div><div class="s">zysk ÷ przychód netto</div></div>
-    <div class="tile"><div class="t">ROI na zamrożonym kapitale</div><div class="v" id="rRoi"></div><div class="s" id="rRoiS"></div></div>
+    <div class="tile main" id="tileProfit"><div class="t">Marża I netto</div><div class="v money" id="rProfit"></div><div class="s" id="rProfitS"></div></div>
+    <div class="tile"><div class="t">Marża %</div><div class="v" id="rPct"></div><div class="s">marża ÷ sprzedaż netto</div></div>
+    <div class="tile"><div class="t">Dni w stocku</div><div class="v" id="rDays"></div><div class="s" id="rDaysS"></div></div>
   </div>
 
-  <div class="stack" id="stack"></div>
-  <div class="legend" id="legend"></div>
-
-  <h3 class="sec">Rozliczenie krok po kroku</h3>
+  <h3 class="sec">Rozliczenie</h3>
   <table class="br" id="breakdown"></table>
 
-  <h3 class="sec">Narzędzia do negocjacji</h3>
+  <h3 class="sec">Do negocjacji</h3>
   <div class="tools">
     <div class="tool">
       <h4>Ile maksymalnie zapłacić za auto?</h4>
-      <label class="f"><span>Chcę zarobić (netto)</span>
-        <div class="suffix"><input type="text" inputmode="decimal" data-k="target" data-num><i>zł</i></div></label>
+      <label class="f"><span>Docelowa marża I netto</span>
+        <div class="suffix"><input type="text" inputmode="decimal" data-k="target"><i>zł</i></div></label>
       <div class="ans money" id="maxBuy"></div>
-      <p id="maxBuyS">Przy obecnej cenie sprzedaży i kosztach. Licytujesz maksymalnie do tej kwoty.</p>
+      <p id="maxBuyS"></p>
     </div>
     <div class="tool">
-      <h4>Za ile muszę sprzedać?</h4>
-      <p style="margin:0 0 4px">Cena brutto, żeby zarobić kwotę z lewej:</p>
+      <h4>Za ile sprzedać?</h4>
+      <p style="margin:0 0 4px">Cena brutto dla docelowej marży:</p>
       <div class="ans money" id="minSale"></div>
       <p id="minSaleS"></p>
-      <p>Próg rentowności (zysk 0 zł): <b class="money" id="breakEven"></b></p>
+      <p>Wyjście na zero: <b class="money" id="breakEven"></b></p>
     </div>
   </div>
 
   <div class="nav" style="justify-content:flex-start;flex-wrap:wrap">
     <button class="btn primary" type="button" id="copyBtn">Kopiuj podsumowanie</button>
   </div>
-  <p class="foot">Kalkulator pomaga w decyzjach handlowych i nie zastępuje księgowej. VAT-marża: art. 120 ustawy o VAT. Podstawą jest różnica między ceną sprzedaży a kwotą nabycia, a VAT = marża brutto × 23/123. Stawki akcyzy sprawdź przed odprawą.</p>
+  <p class="foot">Marża I netto = sprzedaż netto − zakup netto − detailing netto − usprawnienia netto + prowizja z finansowania. Nie obejmuje ogłoszeń, kosztów postoju ani podatku dochodowego. VAT-marża (art. 120 ustawy o VAT): VAT = (cena sprzedaży − cena zakupu) × 23/123.</p>
 </div>
 
 <div class="nav">
@@ -350,7 +313,7 @@ h3.sec{font-size:16px;margin:24px 0 8px}
 
 <aside class="side">
   <div class="card">
-    <h3>Podgląd na żywo</h3>
+    <h3>Marża I netto – na żywo</h3>
     <div class="big money" id="sProfit">0 zł</div>
     <div style="color:var(--muted);font-size:13px;margin-bottom:12px" id="sPct"></div>
     <div id="sKv"></div>
@@ -360,7 +323,7 @@ h3.sec{font-size:16px;margin:24px 0 8px}
 </div>
 
 <div class="mobilebar"><div class="wrap">
-  <div><div style="font-size:12px;color:var(--muted)">Zysk łącznie (netto)</div><div class="money" style="font-size:20px;font-weight:800" id="mProfit">0 zł</div></div>
+  <div><div style="font-size:12px;color:var(--muted)">Marża I netto</div><div class="money" style="font-size:20px;font-weight:800" id="mProfit">0 zł</div></div>
   <div style="font-size:13px;color:var(--muted);text-align:right" id="mPct"></div>
 </div></div>
 <div class="toast" id="toast"></div>
@@ -369,87 +332,54 @@ h3.sec{font-size:16px;margin:24px 0 8px}
 /* ===== Logika obliczeń (czysta, bez DOM) ===== */
 var VAT = 0.23;
 function n(v){ if(typeof v==='number') return isFinite(v)?v:0; var x=parseFloat(String(v==null?'':v).replace(/\s/g,'').replace(',','.')); return isFinite(x)?x:0; }
-function akcyzaRateOf(s){ if(!s.importOn) return 0; return (s.akcyzaRate==='custom'? n(s.akcyzaCustom) : n(s.akcyzaRate))/100; }
 function lineCost(l){ var a=n(l.amount); return l.vat ? a/(1+VAT) : a; }
 function lineVat(l){ var a=n(l.amount); return l.vat ? a - a/(1+VAT) : 0; }
-function sumCat(s,cat){ return (s.lines||[]).filter(function(l){return l.cat===cat;}).reduce(function(t,l){return t+lineCost(l);},0); }
+function validVin(v){ return /^[A-HJ-NPR-Z0-9]{17}$/.test(String(v||'').toUpperCase().trim()); }
+function daysBetween(a,b){ if(!a||!b) return null; var d=(new Date(b)-new Date(a))/864e5; return isFinite(d)?Math.round(d):null; }
 
 function calc(s){
-  var fx = s.currency==='EUR' ? n(s.fx) : 1;
-  var N = n(s.price)*fx;                       // marża: kwota nabycia; vat: cena netto
-  var r = akcyzaRateOf(s);
-  var akcyza = r*N;
-  var cImport = sumCat(s,'import'), cDet = sumCat(s,'detailing'), cRep = sumCat(s,'repairs'), cSales = sumCat(s,'sales');
-  var vatDeducted = (s.lines||[]).reduce(function(t,l){return t+lineVat(l);},0);
-  var finOn = !!s.finOn;
-  var commFin = !finOn ? 0 : (s.commType==='fixed' ? n(s.commFixed) : n(s.finAmount)*n(s.commPct)/100);
-  var commIns = finOn ? n(s.insComm) : 0, commOther = finOn ? n(s.otherComm) : 0;
-  var subsidy = finOn ? n(s.finSubsidy) : 0;
-  var C = commFin + commIns + commOther - subsidy;    // przychód z finansowania netto
-  var capital = N + akcyza + cImport + cDet + cRep;    // zamrożony kapitał (netto)
-  var holding = capital * n(s.capRate)/100 * n(s.days)/365;
-  var K0 = cImport + cDet + cRep + cSales + holding;   // koszty niezależne od ceny zakupu
-  var K = K0 + akcyza;
+  var vatMode = s.mode==='vat';
+  var buyGross = n(s.price);
+  var N = vatMode ? buyGross/(1+VAT) : buyGross;          // zakup netto / kwota nabycia
+  var detGross = s.detOn ? n(s.detAmount) : 0;
+  var cDet = detGross/(1+n(s.detVat)/100);
+  var reps = (s.lines||[]).filter(function(l){return l.cat==='repairs';});
+  var cRep = reps.reduce(function(t,l){return t+lineCost(l);},0);
+  var C = s.finOn ? n(s.comm) : 0;
+  var K = cDet + cRep;
   var S = n(s.sale);
-  var vatOut, revNet, vatBase = null, purchaseVat = 0;
-  if(s.mode==='vat'){
-    vatOut = S*VAT/(1+VAT); revNet = S - vatOut; purchaseVat = N*VAT;
-  } else {
-    vatBase = S - N;
-    vatOut = vatBase>0 ? vatBase*VAT/(1+VAT) : 0;
-    revNet = S - vatOut;
-  }
-  var carProfit = revNet - N - K;          // zysk na samym aucie
-  var profit = carProfit + C;              // zysk łącznie z finansowaniem
-  var pit = n(s.pit)/100;
-  var afterTax = profit>0 ? profit*(1-pit) : profit;
-  var revenueTotal = revNet + Math.max(C,0);
-  var pct = revenueTotal>0 ? profit/revenueTotal : 0;
-  var roi = capital>0 ? profit/capital : 0;
-
-  // cena sprzedaży dla zysku P
+  var vatOut, revNet, vatBase=null;
+  if(vatMode){ vatOut = S*VAT/(1+VAT); revNet = S - vatOut; }
+  else { vatBase = S - N; vatOut = vatBase>0 ? vatBase*VAT/(1+VAT) : 0; revNet = S - vatOut; }
+  var carMargin = revNet - N - K;
+  var margin = carMargin + C;
+  var pct = revNet>0 ? margin/revNet : 0;
   function saleFor(P){
-    if(s.mode==='vat') return (P + N + K - C)*(1+VAT);
+    if(vatMode) return (P + N + K - C)*(1+VAT);
     var s1 = N + (P + K - C)*(1+VAT);
-    if(s1 >= N) return s1;
-    return P + N + K - C;
+    return s1 >= N ? s1 : P + N + K - C;
   }
-  // maks. cena zakupu (PLN, netto w trybie VAT) przy obecnej cenie sprzedaży, dla zysku P
-  // uwaga: koszt postoju zależy od N, więc traktujemy go jako stopę h na złotówkę kapitału
-  function maxBuyFor(P){
-    var h = n(s.capRate)/100*n(s.days)/365;
-    var fixed = cImport + cDet + cRep;           // część kapitału niezależna od N
-    var K0x = fixed*(1+h) + cSales;              // koszty stałe + ich postój
-    var perN = (1+r)*(1+h) - 1;                  // dodatkowy koszt na 1 zł ceny zakupu (akcyza + postój)
-    if(s.mode==='vat') return (S/(1+VAT) - P - K0x + C)/(1+perN);
-    var N1 = (S/(1+VAT) - (P + K0x - C)) / (1/(1+VAT) + perN);
-    if(N1 <= S) return N1;
-    return (S - P - K0x + C)/(1+perN);
+  function maxBuyFor(P){ // zwraca kwotę BRUTTO z faktury zakupu
+    if(vatMode) return (S/(1+VAT) - P - K + C)*(1+VAT);
+    var N1 = S - (P + K - C)*(1+VAT);
+    return N1 <= S ? N1 : S - P - K + C;
   }
-  return { fx:fx, N:N, r:r, akcyza:akcyza, cImport:cImport, cDet:cDet, cRep:cRep, cSales:cSales,
-    holding:holding, vatDeducted:vatDeducted, commFin:commFin, commIns:commIns, commOther:commOther, subsidy:subsidy, C:C,
-    K:K, S:S, vatOut:vatOut, vatBase:vatBase, revNet:revNet, purchaseVat:purchaseVat, carProfit:carProfit, profit:profit,
-    afterTax:afterTax, pit:pit, pct:pct, roi:roi, capital:capital, saleFor:saleFor, maxBuyFor:maxBuyFor };
+  return { vatMode:vatMode, buyGross:buyGross, N:N, buyVat:buyGross-N, cDet:cDet, detGross:detGross, cRep:cRep,
+    repVat: reps.reduce(function(t,l){return t+lineVat(l);},0), C:C, K:K, S:S, vatOut:vatOut, vatBase:vatBase, revNet:revNet,
+    carMargin:carMargin, margin:margin, pct:pct, days:daysBetween(s.buyDate,s.saleDate), saleFor:saleFor, maxBuyFor:maxBuyFor };
 }
-if(typeof module!=='undefined') module.exports = { calc:calc, n:n };
+if(typeof module!=='undefined') module.exports = { calc:calc, n:n, validVin:validVin };
 </script>
 
 <script>
 /* ===== Interfejs ===== */
-var PRESETS = {
-  import: [['Transport / laweta',0,false],['Opłata recyklingowa',500,false],['Rejestracja + tablice',256,false],['Badanie techniczne',149,false],['Tłumaczenia dokumentów',300,false],['Kurs / prowizja kantoru',0,false]],
-  detailing: [['Polerka 1-etapowa',0,false],['Pranie tapicerki',0,false],['Mycie + dekontaminacja',0,false],['Ozonowanie',0,false],['Komora silnika',0,false],['Powłoka / wosk',0,false]],
-  repairs: [['Serwis olejowy + filtry',0,true],['Opony',0,true],['Klocki / tarcze',0,true],['Lakierowanie elementu',0,true],['PDR – wgniotki',0,true],['Szyba',0,true],['Klimatyzacja',0,true],['Diagnostyka',0,true]],
-  sales: [['Ogłoszenie Otomoto',0,true],['Gwarancja dla klienta',0,true],['Prowizja handlowca',0,false],['Zdjęcia / wideo',0,false],['Paliwo / jazdy próbne',0,false]]
-};
-var DEFAULT = { mode:'marza', carName:'', currency:'PLN', fx:'4.25', price:'', importOn:false, akcyzaRate:'3.1', akcyzaCustom:'',
-  lines:[], finOn:false, finAmount:'', commType:'pct', commPct:'3', commFixed:'', insComm:'', otherComm:'', finSubsidy:'',
-  sale:'', days:'', capRate:'0', pit:'0', target:'5000', step:0 };
-var state;
-try { state = JSON.parse(localStorage.getItem('kalkMarza.v1')) || null; } catch(e){ state = null; }
-if(!state){ state = JSON.parse(JSON.stringify(DEFAULT)); }
-else { for(var k in DEFAULT) if(!(k in state)) state[k]=DEFAULT[k]; }
-function save(){ try{ localStorage.setItem('kalkMarza.v1', JSON.stringify(state)); }catch(e){} }
+var PRESETS = { repairs: [['Serwis olejowy + filtry',true],['Opony',true],['Klocki / tarcze',true],['Lakierowanie',true],['PDR – wgniotki',true],['Szyba',true],['Klimatyzacja',true],['Diagnostyka',true]] };
+var DEFAULT = { mode:'marza', vin:'', carName:'', buyDate:'', saleDate:'', price:'', detOn:true, detAmount:'', detVat:'23',
+  lines:[], finOn:false, bank:'RCI Bank (Renault Finance)', bankOther:'', comm:'', sale:'', target:'3000', step:0 };
+var KEY='kalkMarza.v2', state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ state = null; }
+if(!state) state = JSON.parse(JSON.stringify(DEFAULT)); else for(var k in DEFAULT) if(!(k in state)) state[k]=DEFAULT[k];
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 
 var fmt0 = new Intl.NumberFormat('pl-PL',{maximumFractionDigits:0});
 var fmt2 = new Intl.NumberFormat('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -459,9 +389,10 @@ function pc(v){ return (v*100).toLocaleString('pl-PL',{maximumFractionDigits:1})
 function $(s,el){ return (el||document).querySelector(s); }
 function $$(s,el){ return Array.prototype.slice.call((el||document).querySelectorAll(s)); }
 function esc(t){ return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function dpl(d){ if(!d) return '–'; var p=d.split('-'); return p[2]+'.'+p[1]+'.'+p[0]; }
+function bankName(){ return state.bank==='Inny' ? (state.bankOther||'inny bank') : state.bank; }
 
-var steps = $$('.step');
-var uid = Date.now();
+var steps = $$('.step'), uid = Date.now();
 
 function renderProgress(){
   $('#progress').innerHTML = steps.map(function(st,i){
@@ -475,23 +406,49 @@ function showStep(){
   var last = state.step===steps.length-1;
   $('#nextBtn').style.display = last ? 'none':'';
   $('#nextBtn').textContent = state.step===steps.length-2 ? 'Pokaż marżę →' : 'Dalej →';
-  renderProgress(); save();
-  window.scrollTo({top:0,behavior:'smooth'});
+  renderProgress(); save(); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* walidacja pól obowiązkowych */
+function errors(){
+  var e = {};
+  if(!validVin(state.vin)) e.vin=1;
+  if(!state.buyDate) e.buyDate=1;
+  if(!state.saleDate || (state.buyDate && state.saleDate < state.buyDate)) e.saleDate=1;
+  if(!(n(state.price)>0)) e.price=1;
+  if(!(n(state.sale)>0)) e.sale=1;
+  return e;
+}
+var STEP_FIELDS = {1:['vin','buyDate','saleDate','price'],5:['sale']};
+function showErrors(fields){
+  var e = errors(), bad = fields.filter(function(f){return e[f];});
+  fields.forEach(function(f){
+    $('[data-err="'+f+'"]').classList.toggle('show', !!e[f]);
+    $('[data-k="'+f+'"]').classList.toggle('err', !!e[f]);
+  });
+  return bad;
+}
+function canGo(target){
+  for(var st in STEP_FIELDS){ if(+st < target){ var bad = showErrors(STEP_FIELDS[st]); if(bad.length){ state.step=+st; showStep(); var el=$('[data-k="'+bad[0]+'"]'); if(el) el.focus(); toast('Uzupełnij obowiązkowe pola'); return false; } } }
+  return true;
 }
 
 function fillInputs(){
-  $$('[data-k]').forEach(function(el){
-    var k = el.dataset.k;
-    if(el.type==='checkbox') el.checked = !!state[k]; else el.value = state[k]==null?'':state[k];
-  });
+  $$('[data-k]').forEach(function(el){ var k=el.dataset.k; if(el.type==='checkbox') el.checked=!!state[k]; else el.value = state[k]==null?'':state[k]; });
 }
 function bindInputs(){
   $$('[data-k]').forEach(function(el){
     var k = el.dataset.k;
-    el.addEventListener(el.tagName==='SELECT'||el.type==='checkbox' ? 'change':'input', function(){
-      state[k] = el.type==='checkbox' ? el.checked : el.value;
+    el.addEventListener(el.tagName==='SELECT'||el.type==='checkbox'||el.type==='date' ? 'change':'input', function(){
+      state[k] = el.type==='checkbox' ? el.checked : (k==='vin' ? el.value.toUpperCase().replace(/\s/g,'') : el.value);
+      if(k==='vin' && el.value!==state[k]) el.value=state[k];
+      if(el.classList.contains('err')) showErrors([k]);
       refresh();
     });
+    if(el.type==='date') el.addEventListener('input', function(){ state[k]=el.value; refresh(); });
+  });
+  $$('[data-seg]').forEach(function(seg){
+    $$('button',seg).forEach(function(b){ b.addEventListener('click',function(){ state[seg.dataset.seg]=b.dataset.v; refresh(); }); });
   });
 }
 
@@ -504,7 +461,7 @@ function renderLines(cat){
       '<div class="suffix"><input type="text" class="la" inputmode="decimal" value="'+esc(l.amount)+'" placeholder="0"><i>zł</i></div>'+
       '<label class="vchk"><input type="checkbox" class="lv" '+(l.vat?'checked':'')+'> FV 23%</label>'+
       '<button type="button" class="del" title="Usuń">×</button></div>';
-  }).join('') : '<div style="color:var(--muted);font-size:13.5px">Brak pozycji. Dodaj je przyciskami poniżej.</div>';
+  }).join('') : '<div style="color:var(--muted);font-size:13.5px">Brak usprawnień. Dodaj pozycję albo przejdź dalej.</div>';
   $$('.lrow',box).forEach(function(row){
     var l = state.lines.find(function(x){return String(x.id)===row.dataset.id;});
     $('.ln',row).addEventListener('input',function(e){ l.name=e.target.value; save(); });
@@ -513,8 +470,8 @@ function renderLines(cat){
     $('.del',row).addEventListener('click',function(){ state.lines = state.lines.filter(function(x){return x!==l;}); renderLines(cat); refresh(); });
   });
 }
-function addLine(cat,name,amount,vat){
-  var l = {id:++uid, cat:cat, name:name, amount: amount? String(amount):'', vat:!!vat};
+function addLine(cat,name,vat){
+  var l = {id:++uid, cat:cat, name:name, amount:'', vat:!!vat};
   state.lines.push(l); renderLines(cat); refresh();
   var inp = $('.lrow[data-id="'+l.id+'"] .la'); if(inp) inp.focus();
 }
@@ -525,205 +482,118 @@ function renderPresets(){
       '<button type="button" class="chip" data-i="own">+ Własna pozycja</button>';
     $$('.chip',box).forEach(function(b){
       b.addEventListener('click',function(){
-        if(b.dataset.i==='own') addLine(cat,'',0,cat==='repairs');
-        else { var p = PRESETS[cat][+b.dataset.i]; addLine(cat,p[0],p[1],p[2]); }
+        if(b.dataset.i==='own') addLine(cat,'',true); else { var p = PRESETS[cat][+b.dataset.i]; addLine(cat,p[0],p[1]); }
       });
     });
   });
 }
 
 function refresh(){
-  var R = calc(state);
-  var marza = state.mode!=='vat';
-  // krok 1
+  var R = calc(state), marza = !R.vatMode;
   $$('.choice').forEach(function(c){ c.classList.toggle('sel', c.dataset.mode===state.mode); });
-  $('#modeInfo').innerHTML = marza
-    ? '<b>Jak liczy się VAT-marża:</b> VAT = (cena sprzedaży − cena zakupu) × 23/123. Koszty napraw, detailingu i transportu <b>nie</b> obniżają tej podstawy.'
-    : '<b>Jak liczy się VAT 23%:</b> odliczasz VAT z faktury zakupu, a przy sprzedaży oddajesz 23/123 całej ceny brutto. Twój zysk to różnica kwot netto.';
-  // krok 2
-  $('#fxWrap').style.display = state.currency==='EUR' ? '' : 'none';
-  $('#priceCur').textContent = state.currency==='EUR' ? '€' : 'zł';
-  $('#priceLabel').textContent = marza ? 'Cena zakupu (kwota z faktury VAT-marża / umowy)' : 'Cena zakupu NETTO (z faktury VAT)';
-  $('#priceHint').textContent = marza ? 'Kwotą nabycia jest to, co płacisz sprzedawcy. Nie ma tu VAT do odliczenia.'
-    : (R.N>0 ? 'Brutto na fakturze: '+zl2(R.N*1.23)+'. VAT do odliczenia: '+zl2(R.purchaseVat)+'.' : 'Wpisz kwotę netto. VAT 23% odliczysz.');
-  $('#purchaseInfo').innerHTML = R.N>0 ? 'Cena zakupu w PLN: <b>'+zl2(R.N)+'</b>' + (state.currency==='EUR' ? ' (kurs '+fmt2.format(R.fx)+')':'') : 'Wpisz cenę zakupu, żeby przejść dalej.';
-  // krok 3
-  $('#akcyzaWrap').style.display = state.importOn ? '' : 'none';
-  $('#akcyzaCustomWrap').style.display = state.akcyzaRate==='custom' ? '' : 'none';
-  $('#akcyzaOut').textContent = zl(R.akcyza);
-  // sumy
-  [['import',R.cImport + R.akcyza],['detailing',R.cDet],['repairs',R.cRep],['sales',R.cSales]].forEach(function(p){
-    var el = $('[data-sub="'+p[0]+'"]'); if(el) el.textContent = zl2(p[1]) + (p[0]==='import' && R.akcyza>0 ? ' (w tym akcyza)':'');
-  });
-  $('#repairsWarn').style.display = marza ? '' : 'none';
-  // krok 6
+  $('#priceLabel').innerHTML = (marza ? 'Cena zakupu (kwota z faktury VAT-marża)' : 'Cena zakupu brutto (z faktury VAT)') + ' <span class="req">*</span>';
+  $('#priceHint').textContent = R.buyGross>0 ? (marza ? 'Kwota nabycia: '+zl2(R.N)+'. Bez VAT do odliczenia.' : 'Netto: '+zl2(R.N)+' · VAT do odliczenia: '+zl2(R.buyVat)) : '';
+  var di = $('#daysInfo');
+  if(R.days!=null && R.days>=0){ di.style.display=''; di.innerHTML='Auto w stocku: <b>'+R.days+' dni</b>.'; } else di.style.display='none';
+  $('#detWrap').style.display = state.detOn ? '' : 'none';
+  $$('[data-seg="detVat"] button').forEach(function(b){ b.classList.toggle('on', b.dataset.v===String(state.detVat)); });
+  $('#detNet').textContent = R.detGross>0 ? 'Koszt netto: '+zl2(R.cDet) : '';
+  var sub=$('[data-sub="repairs"]'); if(sub) sub.textContent = zl2(R.cRep);
   $('#finWrap').style.display = state.finOn ? '' : 'none';
-  $('#commPctWrap').style.display = state.commType==='pct' ? '' : 'none';
-  $('#commFixedWrap').style.display = state.commType==='fixed' ? '' : 'none';
-  $('#finOut').textContent = zl2(R.C);
-  // krok 7
-  $('#saleHint').textContent = R.S>0 ? (marza
-      ? 'VAT do zapłacenia: '+zl2(R.vatOut)+' (od marży '+zl2(Math.max(R.vatBase,0))+').'
-      : 'Netto: '+zl2(R.revNet)+' · VAT: '+zl2(R.vatOut)+'.') : 'Wpisz cenę, za którą wystawiasz lub sprzedajesz auto.';
+  $('#bankOtherWrap').style.display = state.bank==='Inny' ? '' : 'none';
+  $('#saleHint').textContent = R.S>0 ? (marza ? 'VAT-marża do zapłaty: '+zl2(R.vatOut)+' (od marży brutto '+zl2(Math.max(R.vatBase,0))+').' : 'Netto: '+zl2(R.revNet)+' · VAT: '+zl2(R.vatOut)+'.') : '';
 
-  // panel boczny
-  var cls = R.profit>=0 ? 'pos':'neg';
-  ['#sProfit','#mProfit'].forEach(function(id){ var e=$(id); e.textContent = zl(R.profit); e.className = 'big money '+cls; if(id==='#mProfit'){e.className='money '+cls;e.style.fontSize='20px';e.style.fontWeight='800';} });
-  var pcText = R.S>0 ? 'marża '+pc(R.pct)+' · ROI '+pc(R.roi) : 'uzupełnij cenę sprzedaży';
+  var cls = R.margin>=0 ? 'pos':'neg';
+  var mt = R.S>0 ? zl(R.margin) : '–'; if(!(R.S>0)) cls='';
+  $('#sProfit').textContent = mt; $('#sProfit').className='big money '+cls;
+  $('#mProfit').textContent = mt; $('#mProfit').className='money '+cls;
+  var pcText = R.S>0 ? 'marża '+pc(R.pct) : 'uzupełnij cenę sprzedaży';
   $('#sPct').textContent = pcText; $('#mPct').textContent = pcText;
-  $('#sKv').innerHTML = [
-    ['Zakup', R.N + (marza?0:0)], ['Import i opłaty', R.cImport+R.akcyza], ['Detailing', R.cDet], ['Usprawnienia', R.cRep],
-    ['Koszty sprzedaży', R.cSales + R.holding], ['VAT należny', R.vatOut], ['Finansowanie', R.C], ['Sprzedaż', R.S]
-  ].map(function(r){ return '<div class="kv"><span>'+r[0]+'</span><span class="money">'+zl(r[1])+'</span></div>'; }).join('');
-
-  renderResult(R);
-  save();
+  $('#sKv').innerHTML = [['Sprzedaż netto',R.revNet],[marza?'Zakup':'Zakup netto',R.N],['Detailing netto',R.cDet],['Usprawnienia netto',R.cRep],['Prowizja finansowanie',R.C]]
+    .map(function(r){ return '<div class="kv"><span>'+r[0]+'</span><span class="money">'+zl(r[1])+'</span></div>'; }).join('');
+  renderResult(R); save();
 }
 
 function renderResult(R){
-  var marza = state.mode!=='vat';
-  $('#resTitle').textContent = state.carName ? 'Marża: '+state.carName : 'Twoja marża';
-  $('#resLead').textContent = (marza ? 'Procedura VAT-marża' : 'Sprzedaż z VAT 23%') + (state.finOn ? ' · z finansowaniem' : '') + (state.importOn ? ' · import' : '');
-  var tp = $('#tileProfit'); tp.classList.toggle('bad', R.profit<0);
-  $('#rProfit').textContent = zl(R.profit); $('#rProfit').className = 'v money '+(R.profit>=0?'pos':'neg');
-  $('#rProfitS').textContent = R.pit>0 ? 'po podatku ok. '+zl(R.afterTax) : (R.C ? 'w tym z finansowania '+zl(R.C) : 'przed podatkiem dochodowym');
+  var marza = !R.vatMode;
+  $('#resTitle').textContent = 'Marża I netto' + (state.carName ? ': '+state.carName : '');
+  $('#resLead').textContent = (state.vin ? 'VIN '+state.vin+' · ' : '') + (marza ? 'Faktura VAT-marża' : 'Faktura VAT 23%') + (state.finOn ? ' · finansowanie: '+bankName() : '');
+  $('#tileProfit').classList.toggle('bad', R.margin<0);
+  $('#rProfit').textContent = zl(R.margin); $('#rProfit').className='v money '+(R.margin>=0?'pos':'neg');
+  $('#rProfitS').textContent = R.C ? 'w tym prowizja z finansowania '+zl(R.C) : 'bez finansowania';
   $('#rPct').textContent = R.S>0 ? pc(R.pct) : '–';
-  $('#rRoi').textContent = R.capital>0 ? pc(R.roi) : '–';
-  $('#rRoiS').textContent = 'kapitał w aucie: '+zl(R.capital);
+  $('#rDays').textContent = R.days!=null && R.days>=0 ? R.days : '–';
+  $('#rDaysS').textContent = dpl(state.buyDate)+' → '+dpl(state.saleDate);
 
-  // alerty
-  var al = [];
-  if(!R.S) al.push(['warn','Brak ceny sprzedaży. Uzupełnij krok 7.']);
-  if(R.S && R.profit<0) al.push(['bad','Strata '+zl(-R.profit)+'. Żeby wyjść na zero, sprzedaj za min. '+zl(R.saleFor(0))+' brutto.']);
-  else if(R.S && R.pct<0.05) al.push(['warn','Marża poniżej 5%. Jedna niespodzianka przy przygotowaniu auta zjada cały zysk.']);
-  if(marza && R.S && R.vatBase<0) al.push(['warn','Sprzedajesz poniżej ceny zakupu. W VAT-marży nie płacisz wtedy VAT, ale strata nie obniża VAT od innych aut.']);
-  if(R.C>0 && R.carProfit<0 && R.profit>=0) al.push(['warn','Auto jest na minusie, a zysk robi dopiero prowizja z finansowania. Jeśli klient zapłaci gotówką, stracisz '+zl(-R.carProfit)+'.']);
-  if(marza && (R.cRep+R.cDet)>0 && R.S) al.push(['info','Naprawy i detailing za '+zl(R.cRep+R.cDet)+' nie obniżają VAT-marży. Każde podniesienie ceny sprzedaży o 1 000 zł daje Ci ok. 813 zł zysku.']);
-  $('#alerts').innerHTML = al.map(function(a){ return '<div class="info '+(a[0]==='bad'?'warn':a[0]==='warn'?'warn':'')+'"'+(a[0]==='bad'?' style="background:var(--bad-soft);border-color:var(--bad);color:#5a1510"':'')+'>'+a[1]+'</div>'; }).join('');
+  var al=[];
+  var e = errors(); if(Object.keys(e).length) al.push(['warn','Brakuje obowiązkowych danych: '+Object.keys(e).map(function(k){return {vin:'VIN',buyDate:'data zakupu',saleDate:'data sprzedaży',price:'cena zakupu',sale:'cena sprzedaży'}[k];}).join(', ')+'.']);
+  if(R.S && R.margin<0) al.push(['bad','Marża ujemna: '+zl(R.margin)+'. Żeby wyjść na zero, cena sprzedaży musi wynosić co najmniej '+zl(R.saleFor(0))+' brutto.']);
+  if(R.C>0 && R.carMargin<0 && R.margin>=0) al.push(['warn','Auto jest na minusie '+zl(R.carMargin)+', a marżę ratuje tylko prowizja z finansowania. Przy zakupie za gotówkę będzie strata.']);
+  $('#alerts').innerHTML = al.map(function(a){ return '<div class="info warn"'+(a[0]==='bad'?' style="background:var(--bad-soft);border-color:var(--bad);color:#5a1510"':'')+'>'+a[1]+'</div>'; }).join('');
 
-  // pasek struktury ceny
-  var parts = [['Zakup',R.N,'#12355b'],['Import/opłaty',R.cImport+R.akcyza,'#4a6a8f'],['Detailing',R.cDet,'#7aa0c4'],['Usprawnienia',R.cRep,'#a9c3dc'],['Sprzedaż/postój',R.cSales+R.holding,'#c9d6e3'],['VAT',R.vatOut,'#d99a5b'],['Zysk',Math.max(R.carProfit,0),'#1f7a5a']];
-  var tot = parts.reduce(function(t,p){return t+Math.max(p[1],0);},0) || 1;
-  $('#stack').innerHTML = parts.map(function(p){ return '<div title="'+p[0]+': '+zl(p[1])+'" style="width:'+(Math.max(p[1],0)/tot*100)+'%;background:'+p[2]+'"></div>'; }).join('');
-  $('#legend').innerHTML = parts.filter(function(p){return p[1]>0;}).map(function(p){ return '<span><i style="background:'+p[2]+'"></i>'+p[0]+' '+pc(p[1]/tot)+'</span>'; }).join('') + '<span style="width:100%">Struktura ceny sprzedaży (bez prowizji z finansowania)</span>';
-
-  // tabela
-  var rows = [];
+  var rows=[];
   function sec(t){ rows.push('<tr class="sec"><td colspan="2">'+t+'</td></tr>'); }
   function row(t,v,c){ rows.push('<tr><td>'+t+'</td><td class="'+(c||'')+'">'+zl2(v)+'</td></tr>'); }
-  sec('Przychód');
+  sec('Sprzedaż');
   row('Cena sprzedaży brutto', R.S);
-  if(marza){ row('Podstawa VAT-marży (sprzedaż − zakup)', Math.max(R.vatBase,0)); row('VAT należny (× 23/123)', -R.vatOut,'minus'); }
-  else row('VAT należny 23%', -R.vatOut,'minus');
-  row('Przychód netto', R.revNet);
-  sec('Koszty');
-  row(marza ? 'Zakup auta (kwota nabycia)' : 'Zakup auta netto', -R.N,'minus');
-  if(R.akcyza) row('Akcyza '+fmt2.format(R.r*100).replace(/,00$/,'')+'%', -R.akcyza,'minus');
-  if(R.cImport) row('Transport i opłaty', -R.cImport,'minus');
-  if(R.cDet) row('Detailing', -R.cDet,'minus');
-  if(R.cRep) row('Naprawy i usprawnienia', -R.cRep,'minus');
-  if(R.cSales) row('Koszty sprzedaży', -R.cSales,'minus');
-  if(R.holding) row('Koszt kapitału ('+n(state.days)+' dni)', -R.holding,'minus');
-  rows.push('<tr class="sum"><td>Zysk na aucie</td><td class="'+(R.carProfit>=0?'plus':'minus')+'">'+zl2(R.carProfit)+'</td></tr>');
-  if(state.finOn){
-    sec('Finansowanie');
-    if(R.commFin) row('Prowizja z finansowania', R.commFin,'plus');
-    if(R.commIns) row('Prowizja z ubezpieczenia', R.commIns,'plus');
-    if(R.commOther) row('Inne prowizje', R.commOther,'plus');
-    if(R.subsidy) row('Dopłata do finansowania', -R.subsidy,'minus');
-  }
-  rows.push('<tr class="sum"><td>ZYSK ŁĄCZNIE (netto)</td><td class="'+(R.profit>=0?'plus':'minus')+'">'+zl2(R.profit)+'</td></tr>');
-  if(R.pit>0) rows.push('<tr><td>Po podatku dochodowym '+pc(R.pit)+' (szac.)</td><td>'+zl2(R.afterTax)+'</td></tr>');
-  if(R.vatDeducted>0 || R.purchaseVat>0){
-    sec('Do wiadomości');
-    if(R.purchaseVat) row('VAT odliczony z zakupu auta', R.purchaseVat);
-    if(R.vatDeducted) row('VAT odliczony z faktur kosztowych', R.vatDeducted);
-  }
+  if(marza){ row('Marża brutto do VAT (sprzedaż − zakup)', Math.max(R.vatBase,0)); row('VAT-marża (× 23/123)', -R.vatOut,'minus'); }
+  else row('VAT 23%', -R.vatOut,'minus');
+  row('Sprzedaż netto', R.revNet);
+  sec('Koszty netto');
+  row(marza ? 'Zakup (kwota nabycia)' : 'Zakup netto', -R.N,'minus');
+  if(state.detOn) row('Detailing ('+(n(state.detVat)?state.detVat+'% VAT':'bez VAT')+')', -R.cDet,'minus');
+  state.lines.filter(function(l){return l.cat==='repairs' && n(l.amount);}).forEach(function(l){ row((l.name||'Usprawnienie')+(l.vat?' (FV 23%)':''), -lineCost(l),'minus'); });
+  rows.push('<tr class="sum"><td>Marża na aucie</td><td class="'+(R.carMargin>=0?'plus':'minus')+'">'+zl2(R.carMargin)+'</td></tr>');
+  if(state.finOn){ sec('Finansowanie'); row('Prowizja – '+esc(bankName()), R.C,'plus'); }
+  rows.push('<tr class="sum"><td>MARŻA I NETTO</td><td class="'+(R.margin>=0?'plus':'minus')+'">'+zl2(R.margin)+'</td></tr>');
   $('#breakdown').innerHTML = rows.join('');
 
-  // narzędzia
-  var P = n(state.target);
-  var mb = R.maxBuyFor(P);
-  var cur = state.currency==='EUR';
-  if(!R.S){ $('#maxBuy').textContent='–'; $('#maxBuyS').textContent='Najpierw wpisz cenę sprzedaży (krok 7).'; }
-  else if(mb<=0){ $('#maxBuy').textContent='Nie da się'; $('#maxBuyS').textContent='Przy tej cenie sprzedaży i kosztach nie zarobisz '+zl(P)+'.'; }
-  else {
-    var txt = zl(mb);
-    if(cur) txt = fmt0.format(Math.round(mb/R.fx))+' € ≈ '+zl(mb);
-    $('#maxBuy').textContent = txt;
-    $('#maxBuyS').textContent = (marza ? 'Kwota do zapłaty sprzedawcy.' : 'Netto, czyli '+zl(mb*1.23)+' brutto.') + (R.N ? ' Obecnie: '+zl(R.N)+(mb>=R.N?' – masz zapas '+zl(mb-R.N)+'.':' – przepłacasz o '+zl(R.N-mb)+'.') : '');
-  }
-  $('#minSale').textContent = zl(Math.max(R.saleFor(P),0));
-  $('#minSaleS').textContent = R.S ? (R.saleFor(P)>R.S ? 'Brakuje '+zl(R.saleFor(P)-R.S)+' do obecnej ceny.' : 'Obecna cena daje zapas '+zl(R.S-R.saleFor(P))+'.') : '';
+  var P = n(state.target), mb = R.maxBuyFor(P);
+  if(!R.S){ $('#maxBuy').textContent='–'; $('#maxBuyS').textContent='Najpierw wpisz cenę sprzedaży.'; }
+  else if(mb<=0){ $('#maxBuy').textContent='Nie da się'; $('#maxBuyS').textContent='Przy tej cenie sprzedaży nie osiągniesz '+zl(P)+' marży.'; }
+  else { $('#maxBuy').textContent = zl(mb) + (marza?'':' brutto');
+    $('#maxBuyS').textContent = R.buyGross ? (mb>=R.buyGross ? 'Zapłacono '+zl(R.buyGross)+', czyli '+zl(mb-R.buyGross)+' zapasu.' : 'Zapłacono '+zl(R.buyGross)+', czyli o '+zl(R.buyGross-mb)+' za dużo.') : ''; }
+  var sf = R.saleFor(P);
+  $('#minSale').textContent = zl(Math.max(sf,0));
+  $('#minSaleS').textContent = R.S ? (sf>R.S ? 'Brakuje '+zl(sf-R.S)+' do obecnej ceny.' : 'Obecna cena daje '+zl(R.S-sf)+' ponad cel.') : '';
   $('#breakEven').textContent = zl(Math.max(R.saleFor(0),0));
 }
 
 function summaryText(){
-  var R = calc(state), marza = state.mode!=='vat';
-  var L = [];
-  L.push('KALKULACJA MARŻY' + (state.carName ? ' – '+state.carName : ''));
-  L.push((marza?'Procedura: VAT-marża':'Procedura: VAT 23%'));
+  var R = calc(state), marza=!R.vatMode, L=[];
+  L.push('MARŻA I NETTO' + (state.carName ? ' – '+state.carName : ''));
+  L.push('VIN: '+(state.vin||'–'));
+  L.push('Zakup: '+dpl(state.buyDate)+' · Sprzedaż: '+dpl(state.saleDate)+(R.days!=null?' · '+R.days+' dni w stocku':''));
+  L.push('Faktura: '+(marza?'VAT-marża':'VAT 23%'));
   L.push('');
-  L.push('Sprzedaż brutto: '+zl2(R.S));
-  L.push('VAT należny: '+zl2(R.vatOut));
-  L.push('Zakup'+(marza?'':' netto')+': '+zl2(R.N)+(state.currency==='EUR'?' ('+fmt2.format(n(state.price))+' € × '+fmt2.format(R.fx)+')':''));
-  if(R.akcyza) L.push('Akcyza: '+zl2(R.akcyza));
-  state.lines.forEach(function(l){ if(n(l.amount)) L.push('• '+(l.name||'Pozycja')+': '+zl2(n(l.amount))+(l.vat?' brutto (FV 23%, koszt '+zl2(n(l.amount)/1.23)+')':'')); });
-  if(R.holding) L.push('Koszt kapitału: '+zl2(R.holding));
-  L.push('Zysk na aucie: '+zl2(R.carProfit));
-  if(state.finOn) L.push('Prowizje z finansowania i ubezpieczeń (netto): '+zl2(R.C));
+  L.push('Sprzedaż brutto: '+zl2(R.S)+' | netto: '+zl2(R.revNet));
+  L.push('Zakup'+(marza?'':' netto')+': '+zl2(R.N));
+  if(state.detOn) L.push('Detailing netto: '+zl2(R.cDet));
+  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) L.push('• '+(l.name||'Usprawnienie')+': '+zl2(lineCost(l))+' netto'); });
+  if(state.finOn) L.push('Prowizja z finansowania ('+bankName()+'): '+zl2(R.C));
   L.push('');
-  L.push('ZYSK ŁĄCZNIE: '+zl2(R.profit)+'  |  marża '+pc(R.pct)+'  |  ROI '+pc(R.roi));
-  if(R.pit>0) L.push('Po podatku dochodowym (szac.): '+zl2(R.afterTax));
-  L.push('Próg rentowności: '+zl(R.saleFor(0))+' brutto');
+  L.push('MARŻA I NETTO: '+zl2(R.margin)+' ('+pc(R.pct)+')');
   return L.join('\n');
 }
 function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show');},1800); }
 
-/* zdarzenia */
-$$('.choice').forEach(function(c){ c.addEventListener('click',function(){ state.mode=c.dataset.mode; refresh(); }); });
-$('#nextBtn').addEventListener('click',function(){
-  if(state.step===1 && !n(state.price)){ toast('Wpisz cenę zakupu'); $('[data-k="price"]').focus(); return; }
-  if(state.step===6 && !n(state.sale)){ toast('Wpisz cenę sprzedaży'); $('[data-k="sale"]').focus(); return; }
-  state.step=Math.min(state.step+1,steps.length-1); showStep();
-});
+$$('.choice').forEach(function(c){ c.addEventListener('click',function(){ state.mode=c.dataset.mode; refresh(); state.step=1; showStep(); }); });
+$('#nextBtn').addEventListener('click',function(){ var t=Math.min(state.step+1,steps.length-1); if(!canGo(t)) return; state.step=t; showStep(); });
 $('#prevBtn').addEventListener('click',function(){ state.step=Math.max(state.step-1,0); showStep(); });
-$('#progress').addEventListener('click',function(e){ var b=e.target.closest('[data-go]'); if(b){ state.step=+b.dataset.go; showStep(); } });
-$('#finFill').addEventListener('click',function(e){
-  e.preventDefault();
-  var dp = n(state.sale)*0.2;
-  state.finAmount = String(Math.round(n(state.sale)-dp)); $('[data-k="finAmount"]').value = state.finAmount; refresh();
-  toast(n(state.sale) ? 'Wstawiono 80% ceny sprzedaży – popraw wg oferty' : 'Najpierw wpisz cenę sprzedaży w kroku 7');
-});
+$('#progress').addEventListener('click',function(e){ var b=e.target.closest('[data-go]'); if(!b) return; var t=+b.dataset.go; if(t>state.step && !canGo(t)) return; state.step=t; showStep(); });
 $('#copyBtn').addEventListener('click',function(){
   var t = summaryText();
   try { navigator.clipboard.writeText(t).then(function(){toast('Skopiowano podsumowanie');},function(){fallbackCopy(t);}); } catch(e){ fallbackCopy(t); }
 });
-function fallbackCopy(t){
-  var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); toast('Skopiowano podsumowanie'); }catch(e){ toast('Nie udało się skopiować'); }
-  ta.remove();
-}
+function fallbackCopy(t){ var ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast('Skopiowano podsumowanie'); }catch(e){ toast('Nie udało się skopiować'); } ta.remove(); }
 $('#resetBtn').addEventListener('click',function(){
-  if($('#resetBtn').dataset.armed){ state = JSON.parse(JSON.stringify(DEFAULT)); seedDefaults(); init(); toast('Nowa kalkulacja'); delete $('#resetBtn').dataset.armed; $('#resetBtn').textContent='Nowa kalkulacja'; return; }
-  $('#resetBtn').dataset.armed='1'; $('#resetBtn').textContent='Na pewno? Kliknij ponownie';
-  setTimeout(function(){ delete $('#resetBtn').dataset.armed; $('#resetBtn').textContent='Nowa kalkulacja'; },3000);
+  var b=$('#resetBtn');
+  if(b.dataset.armed){ state = JSON.parse(JSON.stringify(DEFAULT)); init(); $$('.errmsg').forEach(function(x){x.classList.remove('show');}); $$('.err').forEach(function(x){x.classList.remove('err');}); toast('Nowa kalkulacja'); delete b.dataset.armed; b.textContent='Nowa kalkulacja'; return; }
+  b.dataset.armed='1'; b.textContent='Na pewno? Kliknij ponownie';
+  setTimeout(function(){ delete b.dataset.armed; b.textContent='Nowa kalkulacja'; },3000);
 });
-
-function seedDefaults(){
-  if(state.lines.length) return;
-  state.lines.push({id:++uid,cat:'detailing',name:'Polerka 1-etapowa',amount:'',vat:false});
-  state.lines.push({id:++uid,cat:'detailing',name:'Pranie wnętrza',amount:'',vat:false});
-  state.lines.push({id:++uid,cat:'sales',name:'Ogłoszenie Otomoto',amount:'',vat:true});
-}
-function init(){
-  fillInputs();
-  ['import','detailing','repairs','sales'].forEach(renderLines);
-  showStep(); refresh();
-}
-try{ if(!localStorage.getItem('kalkMarza.v1')) seedDefaults(); }catch(e){ seedDefaults(); }
-bindInputs(); renderPresets();
-init();
+function init(){ fillInputs(); renderLines('repairs'); showStep(); refresh(); }
+bindInputs(); renderPresets(); init();
 </script>
 </body>
 </html>

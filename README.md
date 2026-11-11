@@ -1,15 +1,15 @@
 # Kalkulator marży – auta używane
 
-Kreator krok po kroku do liczenia zysku na aucie używanym:
+Kreator krok po kroku liczący **marżę I netto** na aucie używanym (auta krajowe):
 
-1. Rodzaj transakcji: VAT-marża (art. 120) albo VAT 23%
-2. Zakup (PLN/EUR z kursem)
-3. Import i opłaty (akcyza, transport, rejestracja, opłata recyklingowa)
-4. Detailing
-5. Naprawy i usprawnienia (z odliczeniem VAT z faktur)
-6. Finansowanie i ubezpieczenia (prowizje, dopłaty)
-7. Sprzedaż (koszty sprzedaży, koszt kapitału, podatek dochodowy)
-8. Wynik: zysk, marża %, ROI, rozliczenie, maksymalna cena zakupu i minimalna cena sprzedaży
+1. Faktura: VAT-marża albo pełna VAT 23% (sprzedaż na tej samej podstawie co zakup)
+2. Dane auta: VIN, data zakupu, data sprzedaży, cena zakupu (pola obowiązkowe)
+3. Detailing: tak/nie, kwota, VAT usługi (bez VAT / 8% / 23%)
+4. Naprawy i usprawnienia (z odliczeniem VAT z faktur)
+5. Finansowanie: bank i prowizja
+6. Cena sprzedaży
+7. Wynik: marża I netto, marża %, dni w stocku, maksymalna cena zakupu i minimalna cena sprzedaży
+
+Marża I netto = sprzedaż netto − zakup netto − detailing netto − usprawnienia netto + prowizja z finansowania.
 
 Jeden plik `index.html`, bez instalacji. Otwórz go w przeglądarce albo włącz GitHub Pages.
-Logika obliczeń jest w bloku `<script id="calc-logic">`.
