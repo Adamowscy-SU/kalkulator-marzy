@@ -610,8 +610,17 @@ function reportPayload(){
     basis: R.umowa ? 'Umowa kupna-sprzedaży (sprzedaż VAT-marża)' : marza ? 'Faktura VAT-marża' : 'Faktura VAT 23%',
     buyDate: dpl(state.buyDate), saleDate: dpl(state.saleDate), saleDoc: state.saleDoc, days: R.days, bank: state.finOn ? bankName() : '',
     margin: zl2(R.margin), pct: pc(R.pct), rows: rows, text: summaryText(),
+    costDocs: costDocsText(),
     num: { buyDate: state.buyDate, saleDate: state.saleDate, saleGross: R.S, saleNet: R.revNet, buy: R.N, pcc: R.pcc,
       det: R.cDet, rep: R.cRep + R.renew, comm: R.C, carMargin: R.carMargin, margin: R.margin, pct: R.pct } };
+}
+function costDocsText(){
+  var out=[];
+  function d(x){ return String(x||'').trim() || 'brak nr'; }
+  if(state.detOn && n(state.detAmount)) out.push('Detailing '+zl2(calc(state).cDet)+' – '+d(state.detDoc));
+  state.lines.forEach(function(l){ if(l.cat==='repairs' && n(l.amount)) out.push((String(l.name||'').trim()||'Usprawnienie')+' '+zl2(lineCost(l))+' – '+d(l.doc)); });
+  if(state.renewOn) out.push('Certyfikat Renew 340,00 zł');
+  return out.join(' | ');
 }
 function setStatus(html, bad){ var e=$('#sendStatus'); e.style.display=''; e.className='info'+(bad?' warn':''); e.innerHTML=html; }
 function sendReport(){
