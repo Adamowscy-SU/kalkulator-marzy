@@ -606,7 +606,7 @@ function reportPayload(){
   r('Marża na aucie', R.carMargin, 'b');
   if(state.finOn) r('Prowizja z finansowania – '+bankName(), R.C);
   r('MARŻA I NETTO', R.margin, 'total');
-  return { token: CONFIG.TOKEN, vin: state.vin, car: state.carName, seller: state.seller,
+  return { token: CONFIG.TOKEN, vin: state.vin, car: String(state.carName||'').trim(), seller: String(state.seller||'').trim(),
     basis: R.umowa ? 'Umowa kupna-sprzedaży (sprzedaż VAT-marża)' : marza ? 'Faktura VAT-marża' : 'Faktura VAT 23%',
     buyDate: dpl(state.buyDate), saleDate: dpl(state.saleDate), saleDoc: state.saleDoc, days: R.days, bank: state.finOn ? bankName() : '',
     margin: zl2(R.margin), pct: pc(R.pct), rows: rows, text: summaryText(),

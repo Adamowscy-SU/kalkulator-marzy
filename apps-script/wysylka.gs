@@ -48,10 +48,13 @@ function zapiszWiersz_(d, vin) {
   var dt = function (s) { return s ? Utilities.parseDate(s, 'Europe/Warsaw', 'yyyy-MM-dd') : ''; };
   var sh = SpreadsheetApp.openById(ARKUSZ_ID).getSheetByName('Transakcje');
   sh.appendRow([
-    new Date(), vin, d.car || '', d.seller || '', d.basis || '', dt(n.buyDate), dt(n.saleDate),
+    new Date(), vin, String(d.car || '').trim(), String(d.seller || '').trim(), d.basis || '', dt(n.buyDate), dt(n.saleDate),
     d.days == null ? '' : d.days, d.saleDoc ? "'" + d.saleDoc : '',
     n.saleGross, n.saleNet, n.buy, n.pcc, n.det, n.rep, d.bank || '', n.comm, n.carMargin, n.margin, n.pct
   ]);
+  var r = sh.getLastRow();
+  sh.getRange(r, 1).setNumberFormat('dd.mm.yyyy hh:mm');
+  sh.getRange(r, 6, 1, 2).setNumberFormat('dd.mm.yyyy');
 }
 
 function raport_(d, vin) {
